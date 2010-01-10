@@ -123,17 +123,12 @@ package
 		public static function InitEncoreChar() : Vector.<int>
 		{
 			var encodeChars:Vector.<int> = new Vector.<int>();
-			
 			// We could push the number directly, but i think it's nice to see the characters (with no overhead on encode/decode)
-			encodeChars.push(
-			'A'.charCodeAt(), 'B'.charCodeAt(), 'C'.charCodeAt(),'D'.charCodeAt(),  'E'.charCodeAt(), 'F'.charCodeAt(), 'G'.charCodeAt(), 'H'.charCodeAt(),
-			'I'.charCodeAt(), 'J'.charCodeAt(), 'K'.charCodeAt(), 'L'.charCodeAt(), 'M'.charCodeAt(), 'N'.charCodeAt(), 'O'.charCodeAt(), 'P'.charCodeAt(),
-			'Q'.charCodeAt(), 'R'.charCodeAt(), 'S'.charCodeAt(), 'T'.charCodeAt(), 'U'.charCodeAt(), 'V'.charCodeAt(), 'W'.charCodeAt(), 'X'.charCodeAt(), 
-			'Y'.charCodeAt(), 'Z'.charCodeAt(), 'a'.charCodeAt(), 'b'.charCodeAt(), 'c'.charCodeAt(), 'd'.charCodeAt(), 'e'.charCodeAt(), 'f'.charCodeAt(),   
-			'g'.charCodeAt(), 'h'.charCodeAt(), 'i'.charCodeAt(), 'j'.charCodeAt(), 'k'.charCodeAt(), 'l'.charCodeAt(), 'm'.charCodeAt(), 'n'.charCodeAt(),   
-			'o'.charCodeAt(), 'p'.charCodeAt(), 'q'.charCodeAt(), 'r'.charCodeAt(), 's'.charCodeAt(), 't'.charCodeAt(), 'u'.charCodeAt(), 'v'.charCodeAt(),   
-			'w'.charCodeAt(), 'x'.charCodeAt(), 'y'.charCodeAt(), 'z'.charCodeAt(), '0'.charCodeAt(), '1'.charCodeAt(), '2'.charCodeAt(), '3'.charCodeAt(),   
-			'4'.charCodeAt(), '5'.charCodeAt(), '6'.charCodeAt(), '7'.charCodeAt(), '8'.charCodeAt(), '9'.charCodeAt(), '+'.charCodeAt(), '/'.charCodeAt());   
+			var chars:String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+			for (var i:int = 0; i < 64; i++)
+			{
+				encodeChars.push(chars.charCodeAt(i));
+			}
 			/*
 				encodeChars.push(
 				65, 66, 67, 68, 69, 70, 71, 72,
