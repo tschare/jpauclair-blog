@@ -6,6 +6,8 @@ texture g_BaseTexture2;
 float4x4 g_WorldViewProj;    // World * View * Projection matrix
 
  float sFloat : register(r2);
+int width=0;
+int height=0;
 
 //float Sum;
 
@@ -77,7 +79,17 @@ PS_OUTPUT RenderPS( VS_OUTPUT In )
 	float4 Color2 = tex2D(BaseTextureSampler2, In.TextureUV);
 
 	Output.RGBColor  = abs(Color - Color2);
-    Output.RGBColor.a=1;
+    Output.RGBColor.a=0;
+    
+    for(int x=0;x<width;x++)
+    {
+		for(int y=0;y<height;y++)
+		{
+			Output.RGBColor.a = 1;
+		}
+	}
+    
+    
     
     return Output;
 }
@@ -95,6 +107,6 @@ technique Render
         DestBlend = InvSrcAlpha;
 
         VertexShader = compile vs_2_0 RenderVS( );
-        PixelShader  = compile ps_1_4 RenderPS( );
+        PixelShader  = compile ps_3_0 RenderPS( );
     }
 }

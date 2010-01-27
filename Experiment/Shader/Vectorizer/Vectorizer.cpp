@@ -380,6 +380,9 @@ void render( void )
 	g_pEffect->SetTechnique( "Render" );
 	setTechniqueVariables();
 
+	g_pEffect->SetInt("width", 256);
+	g_pEffect->SetInt("height", 256);
+
 	g_pd3dDevice->GetRenderTarget(0, &oldColorBuffer);
 	g_pd3dDevice->GetTransform(D3DTS_PROJECTION,&matOldProjection);
 
@@ -418,7 +421,6 @@ void render( void )
 		
 		D3DSURFACE_DESC m_desc; 
 		m_pTexRender2->GetLevelDesc(0, &m_desc);
-
 		
 		if(m_pTexRender2->LockRect(0, &m_lockedRect, 0, D3DLOCK_READONLY) != D3D_OK) 
 		{
