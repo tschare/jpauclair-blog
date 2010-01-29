@@ -74,8 +74,6 @@ PS_OUTPUT RenderPS( VS_OUTPUT In )
     float4 Color2 = tex2D(BaseTextureSampler2, In.TextureUV);
 	
     Output.RGBColor = abs(Color1 - Color2);
-    Output.RGBColor.a = 1;
-
     return Output;
 }
 
