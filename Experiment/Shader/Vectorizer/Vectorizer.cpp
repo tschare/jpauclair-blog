@@ -49,10 +49,10 @@ struct Vertex
 
 Vertex g_quadVertices[] =
 {
-	{-1.0f, 1.0f, 0.0f, 1.0f,  4278190335 , 0.0f,0.0f },
-	{ 1.0f, 1.0f, 0.0f, 1.0f,  4278190335 , 1.0f,0.0f },
-	{-1.0f,-1.0f, 0.0f, 1.0f,  4278190335 ,0.0f,1.0f },
-	{ 1.0f,-1.0f, 0.0f, 1.0f,  4278190335 ,1.0f,1.0f }
+	{-1.0f, 1.0f, 0.0f, 1.0f,  0 , 0.0f,0.0f },
+	{ 1.0f, 1.0f, 0.0f, 1.0f,  0 , 1.0f,0.0f },
+	{-1.0f,-1.0f, 0.0f, 1.0f,  0 ,0.0f,1.0f },
+	{ 1.0f,-1.0f, 0.0f, 1.0f,  0 ,1.0f,1.0f }
 };
 
 //-----------------------------------------------------------------------------
@@ -406,10 +406,15 @@ void render( void )
 
 	__int64 t1 = timeGetTime();
 
-#pragma region Version Shader
-/*
-	
 	long sum=0;
+
+#pragma region Version Shader
+
+/*
+ Sum : 12760064
+ time : 547 
+ diff : 778.812500
+*/
 	
 	if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
 	{
@@ -426,7 +431,6 @@ void render( void )
 	    
 		for( UINT uPass = 0; uPass < uPasses; ++uPass )
 		{
-			//g_pEffect->SetFloat("Allo", x/2.0f);
 			g_pEffect->BeginPass( uPass );
 			g_pd3dDevice->SetStreamSource( 0, g_pVertexBuffer, 0, sizeof(Vertex) );
 			g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
@@ -434,10 +438,8 @@ void render( void )
 			g_pEffect->EndPass();
 		}
 
-
 		g_pEffect->End();
 		
-
 		g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
 		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
 		D3DSURFACE_DESC m_desc; 
@@ -466,86 +468,74 @@ void render( void )
 	}		
 	g_pd3dDevice->EndScene();
 		
-*/
+
+
 
 #pragma endregion Version Shader
 
 #pragma region Version 2
-	
+
+	/*
+	Sum : 7340160
+	time : 64 
+	diff : 448.007813
 	//Version 2
-	DWORD sum = 0;
-	BYTE s1=0;
+	int s1=0;
 	D3DLOCKED_RECT m_lockedRect;
 	D3DLOCKED_RECT m_lockedRect2;
 	for(int x=0;x<1000;x++)
 	{
-
-		
+	
 		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
 		BYTE* pBits0 = (BYTE*)m_lockedRect.pBits;
 
 		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
 		BYTE* pBits1 = (BYTE*)m_lockedRect2.pBits;
 
-		sum =0;
+		sum = 0;
 		
-		for (int i=0;i<128*128;i++)
+		for (int i=0;i<128*128*4;i++)
 		{
-			//LogDebug("%d %d %d %d", *(pBits0), *(pBits0+1), *(pBits0+2), *(pBits0+3));
-			s1 =  *(pBits1++) - *(pBits0++);
-			sum += s1;
+			//LogDebug("%d %d %d %d\n", *(pBits0), *(pBits0+1), *(pBits0+2), *(pBits0+3));
+			//LogDebug("%d %d %d %d\n", *(pBits1), *(pBits1+1), *(pBits1+2), *(pBits1+3));
+			s1 = (*(pBits0++)) - *(pBits1++);
+			sum += abs(s1);
 		}
 
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
-	
+*/
 #pragma endregion Version 2
 
 #pragma region Version 3
 	
 /*
+Sum : 7340160
+time : 20 
+diff : 448.007813
+
 __m128i* Var1;
 __m128i* Var2;
 __m128i Var3;
 
-	DWORD sum = 0;
-	DWORD s1,s2;
 	D3DLOCKED_RECT m_lockedRect;
 	D3DLOCKED_RECT m_lockedRect2;
 	for(int x=0;x<1000;x++)
 	{
-
-		
 		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var1 = (__m128i*)m_lockedRect.pBits;
 
-		
 		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var2 = (__m128i*)m_lockedRect2.pBits;
 
 		sum =0;
-		int scnt = (128*128)/16;
+		int scnt = (128*128*4)/16;
 		for (int i=0;i<scnt;i++)
 		{
-			
-			//LogDebug("%d %d %d %d\n", (*Var1).m128i_u8[0], (*Var1).m128i_u8[1], (*Var1).m128i_u8[2], (*Var1).m128i_u8[3]);
-			//LogDebug("%d %d %d %d\n", (*Var2).m128i_u8[0], (*Var2).m128i_u8[1], (*Var2).m128i_u8[2], (*Var2).m128i_u8[3]);
-			for(int x=0;x<16;x++)
-			{
-				LogDebug("%d ", (*Var1).m128i_u8[x]);
-			}
-			LogDebug("\n");
-			for(x=0 ;x<16;x++)
-			{
-				LogDebug("%d ", (*Var2).m128i_u8[x]);
-			}
-			LogDebug("\n");
+
 			Var3 = _mm_sad_epu8(*(Var1++),*(Var2++));
-			for(x=0 ;x<8;x++)
-			{
-				LogDebug("%d ", Var3.m128i_u16[x]);
-			}
+
 			//Var3 = _mm_sub_ps(*(Var1),*(Var2));
 			//LogDebug("%d %d %d %d\n", (Var3).m128i_u8[0], (Var3).m128i_u8[1], (Var3).m128i_u8[2], (Var3).m128i_u8[3]);
 			sum += (Var3).m128i_u16[0] + (Var3).m128i_u16[4];
@@ -555,13 +545,13 @@ __m128i Var3;
 		g_pTexture_1->UnlockRect(0);
 	}
 	
-	*/
+*/
 #pragma endregion Version 3
 
 	__int64 t2 = timeGetTime();
 	LogDebug("Sum : %d\n",sum );
 	LogDebug("time : %d \n", t2-t1);
-	//LogDebug("diff : %f\n", sum/(128.0f*128.0f));
+	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
 	//D3DXSaveSurfaceToFile("3.bmp",D3DXIFF_BMP,m_pTexSurface2,NULL,NULL);
 	//D3DXSaveSurfaceToFile("4.bmp",D3DXIFF_BMP,m_pTexSurface,NULL,NULL);
 
