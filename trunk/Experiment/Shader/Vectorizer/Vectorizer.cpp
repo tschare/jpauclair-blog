@@ -8,6 +8,8 @@
 #include <d3dx9.h>
 #include <mmsystem.h>
 #include "resource.h"
+#include <dos.h>
+#include <conio.h>
 
 //-----------------------------------------------------------------------------
 // GLOBALS
@@ -61,6 +63,7 @@ void render(void);
 void shutDown(void);
 void initEffect(void);
 void setTechniqueVariables(void);
+bool kill=false;
 
 //-----------------------------------------------------------------------------
 // Name: WinMain()
@@ -107,7 +110,7 @@ int WINAPI WinMain(	HINSTANCE hInstance,
 	init();
 	initEffect();
 
-	while( uMsg.message != WM_QUIT )
+	while( uMsg.message != WM_QUIT && kill==false)
 	{
 		if( PeekMessage( &uMsg, NULL, 0, 0, PM_REMOVE ) )
 		{
@@ -245,23 +248,32 @@ void init( void )
 
 	D3DXMatrixIdentity( &g_matView ); // This sample is not really making use of a view matrix
 
-	g_pd3dDevice->CreateTexture(256, 256, 1, D3DUSAGE_RENDERTARGET,
-		d3dpp.BackBufferFormat,
+	g_pd3dDevice->CreateTexture(128, 128, 1, D3DUSAGE_RENDERTARGET,
+		D3DFMT_A8R8G8B8,
 		D3DPOOL_DEFAULT,
 		&m_pTexRender,
 		NULL);
 
-	//g_pd3dDevice->CreateRenderTarget(256,256,d3dpp.BackBufferFormat,D3DMULTISAMPLE_NONE,0,true,&m_pTexSurface,NULL);
+	m_pTexRender->GetSurfaceLevel(0, &m_pTexSurface);
 
-	
-	g_pd3dDevice->CreateTexture(256, 256, 1, D3DUSAGE_DYNAMIC,
-		d3dpp.BackBufferFormat,
+	//g_pd3dDevice->CreateRenderTarget(256,256,d3dpp.BackBufferFormat,D3DMULTISAMPLE_NONE,0,true,&m_pTexSurface,NULL);
+/**/
+	g_pd3dDevice->CreateOffscreenPlainSurface(	128,
+												128,
+												D3DFMT_A8R8G8B8,
+												D3DPOOL_SYSTEMMEM,
+												&m_pTexSurface2,
+												NULL);
+	/**
+	g_pd3dDevice->CreateTexture(128, 128, 1, D3DUSAGE_DYNAMIC,
+		D3DFMT_A8R8G8B8,
 		D3DPOOL_SYSTEMMEM,
 		&m_pTexRender2,
 		NULL);
+		
 
-	m_pTexRender->GetSurfaceLevel(0, &m_pTexSurface);
 	m_pTexRender2->GetSurfaceLevel(0, &m_pTexSurface2);
+	/**/
 
 }
 
@@ -277,7 +289,7 @@ void initEffect( void )
 	//
 
 	D3DXCreateTextureFromFile( g_pd3dDevice, "test.bmp", &g_pTexture_0 );
-	D3DXCreateTextureFromFile( g_pd3dDevice, "checker.bmp", &g_pTexture_1 );
+	D3DXCreateTextureFromFile( g_pd3dDevice, "test2.bmp", &g_pTexture_1 );
 
 	HRESULT hr;
 	LPD3DXBUFFER pBufferErrors = NULL;
@@ -337,7 +349,8 @@ void setTechniqueVariables( void )
     g_pEffect->SetTexture( "g_BaseTexture", g_pTexture_0 );
 	g_pEffect->SetTexture( "g_BaseTexture2", g_pTexture_1 );
 	
-	D3DXMATRIX m1 = g_matWorld * g_matView *g_matProj;
+	////D3DXMATRIX m1 = g_matWorld * g_matView *g_matProj;
+	D3DXMATRIX m1 = g_matWorld*g_matView *g_matProj;
 	g_pEffect->SetMatrix("g_WorldViewProj", &m1);
 
 	//g_pEffect->SetTexture( "texture1", g_pTexture_1 );
@@ -366,42 +379,52 @@ void render( void )
 {
 
 	//snag the old color buffer
+
 	IDirect3DSurface9 *oldColorBuffer = 0;
+
 	D3DXMATRIX matTrans,matProjection,matRot,matOldProjection;
 
-	D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.5f );
+	D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.0f );
+		/*
 	D3DXMatrixRotationYawPitchRoll( &matRot, 
 		D3DXToRadian(g_fSpinX), 
 		D3DXToRadian(g_fSpinY), 
 		0.0f );
-	g_matWorld = matRot * matTrans;
+		*/
+	g_matWorld = matTrans;
 	g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
 
 	g_pEffect->SetTechnique( "Render" );
 	setTechniqueVariables();
 
-	g_pEffect->SetInt("width", 256);
-	g_pEffect->SetInt("height", 256);
+	//g_pd3dDevice->GetRenderTarget(0, &oldColorBuffer);
+//	g_pd3dDevice->GetTransform(D3DTS_PROJECTION,&matOldProjection);
 
-	g_pd3dDevice->GetRenderTarget(0, &oldColorBuffer);
-	g_pd3dDevice->GetTransform(D3DTS_PROJECTION,&matOldProjection);
 
-	//g_pd3dDevice->SetRenderTarget(0, m_pTexSurface);
 
-	D3DLOCKED_RECT m_lockedRect;
+	
 
 	__int64 t1 = timeGetTime();
-	for (int x=0;x<1000;x++)
-	{
+	long sum=0;
 	
-		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-		g_pd3dDevice->BeginScene();
-
+	if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
+	{
+		LogDebug("Failed SetRenderTarget");
+	}
+	//g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
+	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
+	g_pd3dDevice->BeginScene();
+	for (int x=0;x<2;x++)
+	{
+		
+		
+		
 		UINT uPasses;
 		g_pEffect->Begin( &uPasses, 0 );
 	    
 		for( UINT uPass = 0; uPass < uPasses; ++uPass )
 		{
+			g_pEffect->SetFloat("Allo", x/2.0f);
 			g_pEffect->BeginPass( uPass );
 			g_pd3dDevice->SetStreamSource( 0, g_pVertexBuffer, 0, sizeof(Vertex) );
 			g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
@@ -409,107 +432,47 @@ void render( void )
 			g_pEffect->EndPass();
 		}
 
+
 		g_pEffect->End();
-		g_pd3dDevice->EndScene();
 		
-		g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
-		
-		return;
-		
+
 		g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
-		
-		
+		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
 		D3DSURFACE_DESC m_desc; 
-		m_pTexRender2->GetLevelDesc(0, &m_desc);
-		
-		if(m_pTexRender2->LockRect(0, &m_lockedRect, 0, D3DLOCK_READONLY) != D3D_OK) 
+		D3DLOCKED_RECT m_lockedRect;
+
+		if(m_pTexSurface2->LockRect(&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK) 
 		{
 			MessageBox(NULL, "LockRect failed.", "", MB_OK);
-			//return E_FAIL;
 		}
-
-		// Get the bits as a BYTE*
-		const BYTE* pBits = (BYTE*)m_lockedRect.pBits;
-/**/
-		DWORD cnt=0;
-		for(int h = 0; h < m_desc.Height; h++)
-		{
-			for(int j = 0; j < m_desc.Width; j++)
-			{
-				pBits++; //alpha
-				cnt += *(pBits++);
-				cnt += *(pBits++);
-				cnt += *(pBits++);
-				//cnt+= *(BYTE*) pBits++;
-				//cnt+= *(BYTE*) pBits++;
-				//cnt+= *(BYTE*) pBits++;
-			}
-			//pBits += m_lockedRect.Pitch;
-		}
-
-		m_pTexRender2->UnlockRect(0);
-
-
-		//LogDebug("delta : %d", cnt );
 		
-	}
+		BYTE* pBits = (BYTE*)m_lockedRect.pBits;
 
+		int diff=0;
+		sum=0;
+
+		LogDebug("pixel[1]: %d, %d, %d, %d\n", *(pBits),*(pBits+1),*(pBits+2),*(pBits+3));
+		for (int i=0;i<128*128;i++)
+		{
+			diff = *(pBits++) + *(pBits++) + *(pBits++) + *(pBits++);
+			sum += diff;
+
+		}
+
+		m_pTexSurface2->UnlockRect();
+		
+	}		
+	g_pd3dDevice->EndScene();
+		
+
+	
 	__int64 t2 = timeGetTime();
 	LogDebug("time : %d\n", t2-t1);
-	D3DXSaveTextureToFile("1.bmp",D3DXIFF_BMP,g_pTexture_0,NULL);
-	D3DXSaveTextureToFile("2.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
-	D3DXSaveSurfaceToFile("3.bmp",D3DXIFF_BMP,m_pTexSurface2,NULL,NULL);
+	LogDebug("diff : %f\n", sum/(128.0f*128.0f));
+	//D3DXSaveSurfaceToFile("3.bmp",D3DXIFF_BMP,m_pTexSurface2,NULL,NULL);
+	//D3DXSaveSurfaceToFile("4.bmp",D3DXIFF_BMP,m_pTexSurface,NULL,NULL);
 
-	/*
-
-	//return;
-	g_pd3dDevice->SetRenderTarget(0, oldColorBuffer);
-	
-
-	g_pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-
-	g_pd3dDevice->BeginScene();
-
-	D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 4.0f );
-	D3DXMatrixRotationYawPitchRoll( &matRot, 
-		D3DXToRadian(g_fSpinX), 
-		D3DXToRadian(g_fSpinY), 
-		0.0f );
-	g_matWorld = matRot * matTrans;
-
-	g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
-
-	g_pEffect->SetTechnique( "Render" );
-
-
-	setTechniqueVariables();
-	g_pEffect->SetTexture( "g_BaseTexture", m_pTexRender );
-
-	g_pEffect->Begin( &uPasses, 0 );
-
-	for( UINT uPass = 0; uPass < uPasses; ++uPass )
-	{
-		g_pEffect->BeginPass( uPass );
-
-		g_pd3dDevice->SetStreamSource( 0, g_pVertexBuffer, 0, sizeof(Vertex) );
-		g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
-		g_pd3dDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2 );
-
-		g_pEffect->EndPass();
-	}
-
-	g_pEffect->End();
-
-	g_pd3dDevice->EndScene();
-	
-	
-	g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
-
-	*/
-	//DWORD a = readPixel(m_pTexRender);
-	/*
-	char * s = new char[255];
-	sprintf_s(s,4,"%d",a);
-	MessageBox(NULL, s,s,MB_OK|MB_ICONEXCLAMATION);*/
+	Sleep(2000);
+	kill=true;
 }
 
