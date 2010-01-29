@@ -4,7 +4,7 @@
 texture g_BaseTexture;
 texture g_BaseTexture2;
 float4x4 g_WorldViewProj;    // World * View * Projection matrix
-float Allo=0;
+
 //--------------------------------------------------------------------------------------
 // Texture samplers
 //--------------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ PS_OUTPUT RenderPS( VS_OUTPUT In )
     float4 Color2 = tex2D(BaseTextureSampler2, In.TextureUV);
 	
     Output.RGBColor = abs(Color1 - Color2);
-    Output.RGBColor.a = Allo; //0.75;
+    Output.RGBColor.a = 1;
 
     return Output;
 }
