@@ -4,13 +4,7 @@
 texture g_BaseTexture;
 texture g_BaseTexture2;
 float4x4 g_WorldViewProj;    // World * View * Projection matrix
-
- float sFloat : register(r2);
-int width=0;
-int height=0;
-
-//float Sum;
-
+float Allo=0;
 //--------------------------------------------------------------------------------------
 // Texture samplers
 //--------------------------------------------------------------------------------------
@@ -74,23 +68,14 @@ struct PS_OUTPUT
 PS_OUTPUT RenderPS( VS_OUTPUT In ) 
 { 
     PS_OUTPUT Output;
+	
+    
+    float4 Color1 = tex2D(BaseTextureSampler, In.TextureUV);   
+    float4 Color2 = tex2D(BaseTextureSampler2, In.TextureUV);
+	
+    Output.RGBColor = abs(Color1 - Color2);
+    Output.RGBColor.a = Allo; //0.75;
 
-	float4 Color = tex2D(BaseTextureSampler, In.TextureUV);
-	float4 Color2 = tex2D(BaseTextureSampler2, In.TextureUV);
-
-	Output.RGBColor  = abs(Color - Color2);
-    Output.RGBColor.a=0;
-    
-    for(int x=0;x<width;x++)
-    {
-		for(int y=0;y<height;y++)
-		{
-			Output.RGBColor.a = 1;
-		}
-	}
-    
-    
-    
     return Output;
 }
 
@@ -102,11 +87,7 @@ technique Render
 {
     pass P0
     {          
-        AlphaBlendEnable = True;
-        SrcBlend = SrcAlpha;
-        DestBlend = InvSrcAlpha;
-
-        VertexShader = compile vs_2_0 RenderVS( );
+        VertexShader = compile vs_3_0 RenderVS( );
         PixelShader  = compile ps_3_0 RenderPS( );
     }
 }
