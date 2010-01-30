@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="Vectorizer"
 	ProjectGUID="{993108E1-69D3-452C-8FD1-AE4C48C2C998}"
+	RootNamespace="Vectorizer"
 	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
@@ -52,6 +53,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				OpenMP="true"
 				PrecompiledHeaderFile=".\Debug/Vectorizer.pch"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
@@ -209,26 +211,6 @@
 			<File
 				RelativePath=".\Vectorizer.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -256,6 +238,10 @@
 				RelativePath="effect.fx"
 				>
 			</File>
+		</Filter>
+		<Filter
+			Name="includes"
+			>
 		</Filter>
 	</Files>
 	<Globals>
