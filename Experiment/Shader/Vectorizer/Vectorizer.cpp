@@ -246,7 +246,7 @@ void init( void )
 	g_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
 
 	D3DXMatrixPerspectiveFovLH( &g_matProj, D3DXToRadian( 45.0f ), 
-                                512.0f / 512.0f, 0.1f, 100.0f );
+                                128.0f / 128.0f, 0.1f, 100.0f );
     g_pd3dDevice->SetTransform( D3DTS_PROJECTION, &g_matProj );
 
 	D3DXMatrixIdentity( &g_matView ); // This sample is not really making use of a view matrix
@@ -388,12 +388,7 @@ void render( void )
 	D3DXMATRIX matTrans,matProjection,matRot,matOldProjection;
 
 	D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.0f );
-		/*
-	D3DXMatrixRotationYawPitchRoll( &matRot, 
-		D3DXToRadian(g_fSpinX), 
-		D3DXToRadian(g_fSpinY), 
-		0.0f );
-		*/
+
 	g_matWorld = matTrans;
 	g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
 
@@ -402,12 +397,15 @@ void render( void )
 
 	//g_pd3dDevice->GetRenderTarget(0, &oldColorBuffer);
 //	g_pd3dDevice->GetTransform(D3DTS_PROJECTION,&matOldProjection);
+	
+	D3DLOCKED_RECT m_lockedRect;
+	D3DLOCKED_RECT m_lockedRect2;
+	D3DSURFACE_DESC m_desc; 
 
 
-	__int64 t1 = timeGetTime();
-
+	__int64 t1,t2 = timeGetTime();	
 	long sum=0;
-
+	t1 = timeGetTime();
 #pragma region Version Shader
 
 /*
@@ -415,17 +413,29 @@ void render( void )
  time : 547 
  diff : 778.812500
 */
-	/*
-	if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
-	{
-		LogDebug("Failed SetRenderTarget");
-	}
-	//g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
-	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-	g_pd3dDevice->BeginScene();
+	
+
 	for (int x=0;x<1000;x++)
 	{
 		
+		D3DXMATRIX matTrans,matProjection,matRot,matOldProjection;
+
+		D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.8f );
+
+		g_matWorld = matTrans;
+		g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
+
+		g_pEffect->SetTechnique( "Render" );
+		setTechniqueVariables();
+
+		if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
+		{
+			LogDebug("Failed SetRenderTarget");
+		}
+		//g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
+		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
+		g_pd3dDevice->BeginScene();
+
 		UINT uPasses;
 		g_pEffect->Begin( &uPasses, 0 );
 	    
@@ -440,10 +450,10 @@ void render( void )
 
 		g_pEffect->End();
 		
+		g_pd3dDevice->EndScene();
+
 		g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
 		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-		D3DSURFACE_DESC m_desc; 
-		D3DLOCKED_RECT m_lockedRect;
 
 		if(m_pTexSurface2->LockRect(&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK) 
 		{
@@ -464,15 +474,17 @@ void render( void )
 		}
 
 		m_pTexSurface2->UnlockRect();
-		
-	}		
-	g_pd3dDevice->EndScene();
-		
 
-*/
+	}		
+	
 
 #pragma endregion Version Shader
-
+	t2 = timeGetTime();
+	LogDebug("Version Shader\n");
+	LogDebug("Sum : %d\n",sum );
+	LogDebug("time : %d \n", t2-t1);
+	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
+	t1 = timeGetTime();
 #pragma region Version 2
 
 	/*
@@ -482,8 +494,7 @@ void render( void )
 
 	//Version 2
 	int s1=0;
-	D3DLOCKED_RECT m_lockedRect;
-	D3DLOCKED_RECT m_lockedRect2;
+
 	for(int x=0;x<1000;x++)
 	{
 	
@@ -508,20 +519,23 @@ void render( void )
 	}
 
 #pragma endregion Version 2
-
+	t2 = timeGetTime();
+	LogDebug("Version 2\n");
+	LogDebug("Sum : %d\n",sum );
+	LogDebug("time : %d \n", t2-t1);
+	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
+	t1 = timeGetTime();
 #pragma region Version 3
 	
 /*
 Sum : 7340160
 time : 20 
 diff : 448.007813
+*/
+	__m128i* Var1;
+	__m128i* Var2;
+	__m128i  Var3;
 
-__m128i* Var1;
-__m128i* Var2;
-__m128i Var3;
-
-	D3DLOCKED_RECT m_lockedRect;
-	D3DLOCKED_RECT m_lockedRect2;
 	for(int x=0;x<1000;x++)
 	{
 		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
@@ -536,7 +550,6 @@ __m128i Var3;
 		{
 
 			Var3 = _mm_sad_epu8(*(Var1++),*(Var2++));
-
 			//Var3 = _mm_sub_ps(*(Var1),*(Var2));
 			//LogDebug("%d %d %d %d\n", (Var3).m128i_u8[0], (Var3).m128i_u8[1], (Var3).m128i_u8[2], (Var3).m128i_u8[3]);
 			sum += (Var3).m128i_u16[0] + (Var3).m128i_u16[4];
@@ -545,14 +558,16 @@ __m128i Var3;
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
-	*/
-
-#pragma endregion Version 3
-
-	__int64 t2 = timeGetTime();
+	
+	t2 = timeGetTime();
+	LogDebug("Version 3\n");
 	LogDebug("Sum : %d\n",sum );
 	LogDebug("time : %d \n", t2-t1);
 	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
+
+#pragma endregion Version 3
+
+
 	//D3DXSaveSurfaceToFile("3.bmp",D3DXIFF_BMP,m_pTexSurface2,NULL,NULL);
 	//D3DXSaveSurfaceToFile("4.bmp",D3DXIFF_BMP,m_pTexSurface,NULL,NULL);
 
