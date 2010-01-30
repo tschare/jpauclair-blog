@@ -168,7 +168,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3dx9.lib d3d9.lib winmm.lib"
 				OutputFile=".\Release/Vectorizer.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="true"
@@ -209,6 +208,14 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\cLog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Renderer.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Vectorizer.cpp"
 				>
 			</File>
@@ -243,6 +250,22 @@
 			Name="includes"
 			>
 		</Filter>
+		<File
+			RelativePath=".\cCommon.h"
+			>
+		</File>
+		<File
+			RelativePath=".\cLog.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Main.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Renderer.h"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

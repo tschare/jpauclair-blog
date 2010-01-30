@@ -1,16 +1,8 @@
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 
-#include <windows.h>
-#include <stdio.h>
-#include <sys\stat.h>
-#include <d3d9.h>
-#include <d3dx9.h>
-#include <mmsystem.h>
-#include "resource.h"
-#include <dos.h>
-#include <conio.h>
-
+#include "Main.h"
+#include "Renderer.h"
 //-----------------------------------------------------------------------------
 // GLOBALS
 //-----------------------------------------------------------------------------
@@ -18,34 +10,18 @@ HWND                    g_hWnd          = NULL;
 LPDIRECT3D9             g_pD3D          = NULL;
 LPDIRECT3DDEVICE9       g_pd3dDevice    = NULL;
 LPDIRECT3DVERTEXBUFFER9 g_pVertexBuffer = NULL;
-LPDIRECT3DTEXTURE9      g_pTexture_0    = NULL;
-LPDIRECT3DTEXTURE9      g_pTexture_1    = NULL;
-LPD3DXEFFECT            g_pEffect       = NULL;
-
-LPDIRECT3DTEXTURE9 m_pTexRender = NULL;
-LPDIRECT3DTEXTURE9 m_pTexRender2 = NULL;
-LPDIRECT3DSURFACE9 m_pTexSurface = NULL;
-LPDIRECT3DSURFACE9 m_pTexSurface2 = NULL;
 
 D3DPRESENT_PARAMETERS d3dpp;
 
-D3DXMATRIX g_matWorld;
-D3DXMATRIX g_matView;
-D3DXMATRIX g_matProj;
+
+
+
 float      g_fSpinX = 0.0f;
 float      g_fSpinY = 0.0f;
 
-#define D3DFVF_CUSTOMVERTEX ( D3DFVF_XYZW | D3DFVF_DIFFUSE | D3DFVF_TEX1 )
-#include <emmintrin.h>
 
-
-
-struct Vertex
-{
-    float x, y, z, w;
-	DWORD dif;
-    float tu, tv;
-};
+COMMON *C;
+Renderer *mRenderer;
 
 Vertex g_quadVertices[] =
 {
@@ -64,22 +40,19 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void init(void);
 void render(void);
 void shutDown(void);
-void initEffect(void);
-void setTechniqueVariables(void);
+
 bool kill=false;
 
 //-----------------------------------------------------------------------------
 // Name: WinMain()
 // Desc: The application's entry point
 //-----------------------------------------------------------------------------
-int WINAPI WinMain(	HINSTANCE hInstance,
-					HINSTANCE hPrevInstance,
-					LPSTR     lpCmdLine,
-					int       nCmdShow )
+int WINAPI WinMain(	HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR     lpCmdLine,int       nCmdShow )
 {
+	LogStart(NULL);
+
 	WNDCLASSEX winClass; 
 	MSG        uMsg;
-
 	
     memset(&uMsg,0,sizeof(uMsg));
 
@@ -99,10 +72,7 @@ int WINAPI WinMain(	HINSTANCE hInstance,
 	if( !RegisterClassEx(&winClass) )
 		return E_FAIL;
 
-	g_hWnd = CreateWindowEx( NULL, "MY_WINDOWS_CLASS", 
-                             "Vectorizer",
-						     WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-					         0, 0, 512, 512, NULL, NULL, hInstance, NULL );
+	g_hWnd = CreateWindowEx( NULL, "MY_WINDOWS_CLASS", APP_TITLE,WS_OVERLAPPEDWINDOW | WS_VISIBLE,0, 0, APP_WIDTH, APP_HEIGHT, NULL, NULL, hInstance, NULL );
 
 	if( g_hWnd == NULL )
 		return E_FAIL;
@@ -110,8 +80,8 @@ int WINAPI WinMain(	HINSTANCE hInstance,
     ShowWindow( g_hWnd, nCmdShow );
     UpdateWindow( g_hWnd );
 
-	init();
-	initEffect();
+
+	init();	
 
 	while( uMsg.message != WM_QUIT && kill==false)
 	{
@@ -124,6 +94,7 @@ int WINAPI WinMain(	HINSTANCE hInstance,
 		    render();
 	}
 
+	LogStop();
 	shutDown();
 
     UnregisterClass( "MY_WINDOWS_CLASS", winClass.hInstance );
@@ -213,13 +184,14 @@ LRESULT CALLBACK WindowProc( HWND   hWnd,
 // Desc: 
 //-----------------------------------------------------------------------------
 void init( void )
-{
+{	
+	Log("Init start");
+
     g_pD3D = Direct3DCreate9( D3D_SDK_VERSION );
 
     D3DDISPLAYMODE d3ddm;
 
     g_pD3D->GetAdapterDisplayMode( D3DADAPTER_DEFAULT, &d3ddm );
-
     
     ZeroMemory( &d3dpp, sizeof(d3dpp) );
 
@@ -230,89 +202,37 @@ void init( void )
     d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
     d3dpp.PresentationInterval   = D3DPRESENT_INTERVAL_IMMEDIATE;
 
-    g_pD3D->CreateDevice( D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, g_hWnd,
-                          D3DCREATE_SOFTWARE_VERTEXPROCESSING,
-                          &d3dpp, &g_pd3dDevice );
+    if(FAILED(g_pD3D->CreateDevice( D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, g_hWnd,D3DCREATE_SOFTWARE_VERTEXPROCESSING,&d3dpp, &g_pd3dDevice )))
+	{
+		LogError("Failed CreateDevice");
+		PostQuitMessage(0);
+	}
 
-	g_pd3dDevice->CreateVertexBuffer( 4*sizeof(Vertex), D3DUSAGE_WRITEONLY, 
-                                      D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, 
-                                      &g_pVertexBuffer, NULL );
-    void *pVertices = NULL;
+	C = new COMMON();
+	C->m_pD3DDevice = g_pd3dDevice;
+
+	if(FAILED(C->m_pD3DDevice->CreateVertexBuffer( 4*sizeof(Vertex), D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &g_pVertexBuffer, NULL )))
+	{
+		LogError("Failed CreateVertexBuffer");
+		PostQuitMessage(0);
+	}
+	void *pVertices = NULL;
 
     g_pVertexBuffer->Lock( 0, sizeof(g_quadVertices), (void**)&pVertices, 0 );
     memcpy( pVertices, g_quadVertices, sizeof(g_quadVertices) );
     g_pVertexBuffer->Unlock();
 	
-	g_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
+	C->m_pD3DDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
 
-	D3DXMatrixPerspectiveFovLH( &g_matProj, D3DXToRadian( 45.0f ), 
-                                128.0f / 128.0f, 0.1f, 100.0f );
-    g_pd3dDevice->SetTransform( D3DTS_PROJECTION, &g_matProj );
-
-	D3DXMatrixIdentity( &g_matView ); // This sample is not really making use of a view matrix
-
-	g_pd3dDevice->CreateTexture(128, 128, 1, D3DUSAGE_RENDERTARGET,
-		D3DFMT_A8R8G8B8,
-		D3DPOOL_DEFAULT,
-		&m_pTexRender,
-		NULL);
-
-	m_pTexRender->GetSurfaceLevel(0, &m_pTexSurface);
-
-	//g_pd3dDevice->CreateRenderTarget(256,256,d3dpp.BackBufferFormat,D3DMULTISAMPLE_NONE,0,true,&m_pTexSurface,NULL);
-/**/
-	g_pd3dDevice->CreateOffscreenPlainSurface(	128,
-												128,
-												D3DFMT_A8R8G8B8,
-												D3DPOOL_SYSTEMMEM,
-												&m_pTexSurface2,
-												NULL);
-	/**
-	g_pd3dDevice->CreateTexture(128, 128, 1, D3DUSAGE_DYNAMIC,
-		D3DFMT_A8R8G8B8,
-		D3DPOOL_SYSTEMMEM,
-		&m_pTexRender2,
-		NULL);
-		
-
-	m_pTexRender2->GetSurfaceLevel(0, &m_pTexSurface2);
-	/**/
+	mRenderer = new Renderer(C);
+	mRenderer->SetVertexBuffer(g_pVertexBuffer);
+	mRenderer->init();
+	mRenderer->initEffect();
+	Log("Init completed");
 
 }
 
 
-//-----------------------------------------------------------------------------
-// Name: initEffect()
-// Desc: Initializie an Fx effect.
-//-----------------------------------------------------------------------------
-void initEffect( void )
-{
-	//
-	// Create two test textures for our effect to use...
-	//
-
-	D3DXCreateTextureFromFile( g_pd3dDevice, "noir.bmp", &g_pTexture_0 );
-	D3DXCreateTextureFromFile( g_pd3dDevice, "blanc.bmp", &g_pTexture_1 );
-
-	HRESULT hr;
-	LPD3DXBUFFER pBufferErrors = NULL;
-
-	hr = D3DXCreateEffectFromFile( g_pd3dDevice, 
-		                           "effect.fx",
-		                           NULL,
-		                           NULL, 
-		                           D3DXSHADER_ENABLE_BACKWARDS_COMPATIBILITY, 
-		                           NULL, 
-		                           &g_pEffect, 
-		                           &pBufferErrors );
-
-	if( FAILED(hr) )
-	{
-		LPVOID pCompilErrors = pBufferErrors->GetBufferPointer();
-		MessageBox(NULL, (const char*)pCompilErrors, "Fx Compile Error",
-			MB_OK|MB_ICONEXCLAMATION);
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Name: shutDown()
@@ -320,59 +240,12 @@ void initEffect( void )
 //-----------------------------------------------------------------------------
 void shutDown( void )
 {
-	if( g_pTexture_0 != NULL )
-		g_pTexture_0->Release();
-
-	if( g_pTexture_1 != NULL )
-		g_pTexture_1->Release();
-
-	if( g_pEffect != NULL )
-		g_pEffect->Release();
-
-    if( g_pVertexBuffer != NULL )
-        g_pVertexBuffer->Release();
-
-    if( g_pd3dDevice != NULL )
-        g_pd3dDevice->Release();
-
-    if( g_pD3D != NULL )
-        g_pD3D->Release();
+	mRenderer->Dispose();
+    SAFERELEASE(g_pVertexBuffer);
+    SAFERELEASE(g_pVertexBuffer);
+	SAFERELEASE(g_pD3D);
 }
 
-//-----------------------------------------------------------------------------
-// Name: setTechniqueVariables()
-// Desc: 
-//-----------------------------------------------------------------------------
-void setTechniqueVariables( void )
-{
-	//
-	// The only variables this effect has are two textures...
-	//
-
-    g_pEffect->SetTexture( "g_BaseTexture", g_pTexture_0 );
-	g_pEffect->SetTexture( "g_BaseTexture2", g_pTexture_1 );
-	
-	////D3DXMATRIX m1 = g_matWorld * g_matView *g_matProj;
-	D3DXMATRIX m1 = g_matWorld*g_matView *g_matProj;
-	g_pEffect->SetMatrix("g_WorldViewProj", &m1);
-
-	//g_pEffect->SetTexture( "texture1", g_pTexture_1 );
-}
-
-
-
-void LogDebug(char *lpszText, ...)
-{
-	va_list argList;
-	FILE *pFile = NULL;
-
-	va_start(argList, lpszText);
-	char msg[255]; 
-	vsprintf(msg,lpszText, argList);
-	OutputDebugString(msg);
-
-	va_end(argList);
-}
 
 //-----------------------------------------------------------------------------
 // Name: render()
@@ -380,197 +253,9 @@ void LogDebug(char *lpszText, ...)
 //-----------------------------------------------------------------------------
 void render( void )
 {
-
-	//snag the old color buffer
-
-	IDirect3DSurface9 *oldColorBuffer = 0;
-
-	D3DXMATRIX matTrans,matProjection,matRot,matOldProjection;
-
-	D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.0f );
-
-	g_matWorld = matTrans;
-	g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
-
-	g_pEffect->SetTechnique( "Render" );
-	setTechniqueVariables();
-
-	//g_pd3dDevice->GetRenderTarget(0, &oldColorBuffer);
-//	g_pd3dDevice->GetTransform(D3DTS_PROJECTION,&matOldProjection);
-	
-	D3DLOCKED_RECT m_lockedRect;
-	D3DLOCKED_RECT m_lockedRect2;
-	D3DSURFACE_DESC m_desc; 
-
-
-	__int64 t1,t2 = timeGetTime();	
-	long sum=0;
-	t1 = timeGetTime();
-#pragma region Version Shader
-
-/*
- Sum : 12760064
- time : 547 
- diff : 778.812500
-*/
-	
-
-	for (int x=0;x<1000;x++)
-	{
-		
-		D3DXMATRIX matTrans,matProjection,matRot,matOldProjection;
-
-		D3DXMatrixTranslation( &matTrans, 0.0f, 0.0f, 2.8f );
-
-		g_matWorld = matTrans;
-		g_pd3dDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
-
-		g_pEffect->SetTechnique( "Render" );
-		setTechniqueVariables();
-
-		if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
-		{
-			LogDebug("Failed SetRenderTarget");
-		}
-		//g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
-		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-		g_pd3dDevice->BeginScene();
-
-		UINT uPasses;
-		g_pEffect->Begin( &uPasses, 0 );
-	    
-		for( UINT uPass = 0; uPass < uPasses; ++uPass )
-		{
-			g_pEffect->BeginPass( uPass );
-			g_pd3dDevice->SetStreamSource( 0, g_pVertexBuffer, 0, sizeof(Vertex) );
-			g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
-			g_pd3dDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2 );
-			g_pEffect->EndPass();
-		}
-
-		g_pEffect->End();
-		
-		g_pd3dDevice->EndScene();
-
-		g_pd3dDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
-		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_COLORVALUE(0.0f,0.0f,0.0f,1.0f), 1.0f, 0 );
-
-		if(m_pTexSurface2->LockRect(&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK) 
-		{
-			MessageBox(NULL, "LockRect failed.", "", MB_OK);
-		}
-		
-		BYTE* pBits = (BYTE*)m_lockedRect.pBits;
-
-		int diff=0;
-		sum=0;
-
-		//LogDebug("pixel[1]: %d, %d, %d, %d\n", *(pBits),*(pBits+1),*(pBits+2),*(pBits+3));
-		for (int i=0;i<128*128;i++)
-		{
-			diff = *(pBits++) + *(pBits++) + *(pBits++) + *(pBits++);
-			sum += diff;
-
-		}
-
-		m_pTexSurface2->UnlockRect();
-
-	}		
-	
-
-#pragma endregion Version Shader
-	t2 = timeGetTime();
-	LogDebug("Version Shader\n");
-	LogDebug("Sum : %d\n",sum );
-	LogDebug("time : %d \n", t2-t1);
-	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
-	t1 = timeGetTime();
-#pragma region Version 2
-
-	/*
-	Sum : 7340160
-	time : 64 
-	diff : 448.007813*/
-
-	//Version 2
-	int s1=0;
-
-	for(int x=0;x<1000;x++)
-	{
-	
-		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
-		BYTE* pBits0 = (BYTE*)m_lockedRect.pBits;
-
-		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
-		BYTE* pBits1 = (BYTE*)m_lockedRect2.pBits;
-
-		sum = 0;
-		
-		for (int i=0;i<128*128*4;i++)
-		{
-			//LogDebug("%d %d %d %d\n", *(pBits0), *(pBits0+1), *(pBits0+2), *(pBits0+3));
-			//LogDebug("%d %d %d %d\n", *(pBits1), *(pBits1+1), *(pBits1+2), *(pBits1+3));
-			s1 = (*(pBits0++)) - *(pBits1++);
-			sum += abs(s1);
-		}
-
-		g_pTexture_0->UnlockRect(0);
-		g_pTexture_1->UnlockRect(0);
-	}
-
-#pragma endregion Version 2
-	t2 = timeGetTime();
-	LogDebug("Version 2\n");
-	LogDebug("Sum : %d\n",sum );
-	LogDebug("time : %d \n", t2-t1);
-	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
-	t1 = timeGetTime();
-#pragma region Version 3
-	
-/*
-Sum : 7340160
-time : 20 
-diff : 448.007813
-*/
-	__m128i* Var1;
-	__m128i* Var2;
-	__m128i  Var3;
-
-	for(int x=0;x<1000;x++)
-	{
-		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var1 = (__m128i*)m_lockedRect.pBits;
-
-		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var2 = (__m128i*)m_lockedRect2.pBits;
-
-		sum =0;
-		int scnt = (128*128*4)/16;
-		for (int i=0;i<scnt;i++)
-		{
-
-			Var3 = _mm_sad_epu8(*(Var1++),*(Var2++));
-			//Var3 = _mm_sub_ps(*(Var1),*(Var2));
-			//LogDebug("%d %d %d %d\n", (Var3).m128i_u8[0], (Var3).m128i_u8[1], (Var3).m128i_u8[2], (Var3).m128i_u8[3]);
-			sum += (Var3).m128i_u16[0] + (Var3).m128i_u16[4];
-		}
-
-		g_pTexture_0->UnlockRect(0);
-		g_pTexture_1->UnlockRect(0);
-	}
-	
-	t2 = timeGetTime();
-	LogDebug("Version 3\n");
-	LogDebug("Sum : %d\n",sum );
-	LogDebug("time : %d \n", t2-t1);
-	LogDebug("diff : %f\n", sum /(128.0f*128.0f));
-
-#pragma endregion Version 3
-
-
 	//D3DXSaveSurfaceToFile("3.bmp",D3DXIFF_BMP,m_pTexSurface2,NULL,NULL);
 	//D3DXSaveSurfaceToFile("4.bmp",D3DXIFF_BMP,m_pTexSurface,NULL,NULL);
-
+	mRenderer->Render();
 	//Sleep(2000);
 	PostQuitMessage(0);
 	//kill=true;
