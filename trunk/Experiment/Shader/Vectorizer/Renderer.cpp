@@ -16,7 +16,9 @@ void Renderer::SetVertexBuffer(LPDIRECT3DVERTEXBUFFER9 pVertexBuffer)
 
 void Renderer::init()
 {
-	if(FAILED(C->m_pD3DDevice->CreateTexture(128, 128, 1, D3DUSAGE_RENDERTARGET,D3DFMT_A8R8G8B8,D3DPOOL_DEFAULT,&m_pTexRender,NULL)))
+
+	
+	if(FAILED(C->m_pD3DDevice->CreateTexture(IMAGE_WIDTH, IMAGE_HEIGHT, 1, D3DUSAGE_RENDERTARGET,D3DFMT_A8R8G8B8,D3DPOOL_DEFAULT,&m_pTexRender,NULL)))
 	{
 		LogError("Failed CreateTexture");
 		PostQuitMessage(0);
@@ -28,13 +30,13 @@ void Renderer::init()
 		PostQuitMessage(0);
 	}
 
-	if(FAILED(C->m_pD3DDevice->CreateOffscreenPlainSurface(	128,128,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&m_pTexSurface2,NULL)))
+	if(FAILED(C->m_pD3DDevice->CreateOffscreenPlainSurface(	IMAGE_WIDTH,IMAGE_HEIGHT,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&m_pTexSurface2,NULL)))
 	{
 		LogError("Failed CreateOffscreenPlainSurface");
 		PostQuitMessage(0);
 	}
 
-	D3DXMatrixPerspectiveFovLH( &g_matProj, D3DXToRadian( 45.0f ), 128.0f / 128.0f, 0.1f, 100.0f );
+	D3DXMatrixPerspectiveFovLH( &g_matProj, D3DXToRadian( 45.0f ), APP_WIDTH / APP_HEIGHT, 0.1f, 100.0f );
 	C->m_pD3DDevice->SetTransform( D3DTS_PROJECTION, &g_matProj );
 
 	D3DXMatrixIdentity( &g_matView ); // This sample is not really making use of a view matrix
@@ -81,20 +83,12 @@ void Renderer::Render()
 	g_matWorld = matTrans;
 	C->m_pD3DDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
 
-	LogDebug("\nSalut, Le log est dans LogResult.html");
-	LogDebug("\nc'est normal que sa lag");
-	LogMemoryUsage();
 	RenderShader();
-	LogDebug("\nSa process encore");
-	LogMemoryUsage();
 	RenderCode1();
-	LogDebug("\nNe pert pas patience, enleve les LogMemoryUsage, pour moins de lag");
-	LogMemoryUsage();
 	RenderCode2();
-	LogDebug("\nAlmost there\n\n");
+	RenderCode3();
 	LogMemoryUsage();
-
-	C->m_pD3DDevice->SetRenderTarget(0, oldColorBuffer);
+	
 }
 
 
@@ -120,13 +114,11 @@ void Renderer::RenderShader()
 	{
 		LogDebug("Failed SetRenderTarget");
 	}
-
+	C->m_pD3DDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,APP_BGCOLOR, 1.0f, 0 );
+	C->m_pD3DDevice->BeginScene();
 	for (int x=0;x<1000;x++)
 	{
 		
-		C->m_pD3DDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,APP_BGCOLOR, 1.0f, 0 );
-		C->m_pD3DDevice->BeginScene();
-
 		UINT uPasses;
 		g_pEffect->Begin( &uPasses, 0 );
 	    
@@ -138,10 +130,6 @@ void Renderer::RenderShader()
 			C->m_pD3DDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2 );
 			g_pEffect->EndPass();
 		}
-
-		g_pEffect->End();
-		
-		C->m_pD3DDevice->EndScene();
 
 		C->m_pD3DDevice->GetRenderTargetData(m_pTexSurface,m_pTexSurface2);
 		C->m_pD3DDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,APP_BGCOLOR, 1.0f, 0 );
@@ -157,7 +145,7 @@ void Renderer::RenderShader()
 		sum=0;
 
 		//LogDebug("pixel[1]: %d, %d, %d, %d\n", *(pBits),*(pBits+1),*(pBits+2),*(pBits+3));
-		for (int i=0;i<128*128;i++)
+		for (int i=0;i<IMAGE_WIDTH*IMAGE_HEIGHT;i++)
 		{
 			diff = *(pBits++) + *(pBits++) + *(pBits++) + *(pBits++);
 			sum += diff;
@@ -167,12 +155,15 @@ void Renderer::RenderShader()
 		m_pTexSurface2->UnlockRect();
 
 	}		
+	g_pEffect->End();
 
+	C->m_pD3DDevice->EndScene();
 	t2 = timeGetTime();
 	LogWarning("\nVersion Shader\n");
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
-	Log("diff : %f\n", sum /(128.0f*128.0f));
+	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
+
 }
 
 void Renderer::RenderCode1()
@@ -189,7 +180,6 @@ void Renderer::RenderCode1()
 
 	for(int x=0;x<1000;x++)
 	{
-	
 		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
 		BYTE* pBits0 = (BYTE*)m_lockedRect.pBits;
 
@@ -198,10 +188,8 @@ void Renderer::RenderCode1()
 
 		sum = 0;
 		
-		for (int i=0;i<128*128*4;i++)
+		for (int i=0;i<IMAGE_WIDTH*IMAGE_WIDTH*4;i++)
 		{
-			//LogDebug("%d %d %d %d\n", *(pBits0), *(pBits0+1), *(pBits0+2), *(pBits0+3));
-			//LogDebug("%d %d %d %d\n", *(pBits1), *(pBits1+1), *(pBits1+2), *(pBits1+3));
 			s1 = (*(pBits0++)) - *(pBits1++);
 			sum += abs(s1);
 		}
@@ -214,7 +202,7 @@ void Renderer::RenderCode1()
 	LogWarning("\nVersion Code 1\n");
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
-	Log("diff : %f\n", sum /(128.0f*128.0f));
+	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
 }
 
 void Renderer::RenderCode2()
@@ -226,8 +214,7 @@ Sum : 7340160
 time : 20 
 diff : 448.007813
 */
-	__m128i* Var1;
-	__m128i* Var2;
+	__m128i* Var1, *Var2;
 	__m128i  Var3;
 
 	for(int x=0;x<1000;x++)
@@ -239,7 +226,7 @@ diff : 448.007813
 		Var2 = (__m128i*)m_lockedRect2.pBits;
 
 		sum =0;
-		int scnt = (128*128*4)/16;
+		int scnt = (IMAGE_WIDTH*IMAGE_HEIGHT*4)/16;
 		for (int i=0;i<scnt;i++)
 		{
 
@@ -257,9 +244,57 @@ diff : 448.007813
 	LogWarning("\nVersion Code 2\n");
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
-	Log("diff : %f\n", sum /(128.0f*128.0f));
+	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
 
 }
+
+
+
+
+void Renderer::RenderCode3()
+{
+#if USE_IPP
+	/*
+	Sum : 12533760 
+	time : 17 
+	diff : 765.000000 
+	*/		
+	Ipp8u *Var1,*Var2;
+	Ipp8u *Var3 = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+	
+	ippSetNumThreads(2);
+	//Regions of interest
+	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
+
+	Ipp64f sum64;
+
+	t1 = timeGetTime();
+	for(int x=0;x<1000;x++)
+	{
+		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
+		Var1 = (Ipp8u *)m_lockedRect.pBits;
+
+		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
+		Var2 = (Ipp8u*)m_lockedRect2.pBits;
+		
+		IppStatus s = ippiAbsDiff_8u_C1R(Var1,FullImageROI.width,Var2,FullImageROI.width,Var3,FullImageROI.width,FullImageROI);
+		ippiSum_8u_C1R(Var3,FullImageROI.width,FullImageROI,&sum64);
+
+		g_pTexture_0->UnlockRect(0);
+		g_pTexture_1->UnlockRect(0);
+	}
+
+	t2 = timeGetTime();
+	LogWarning("\nVersion Code 3\n");
+	Log("Sum : %d\n",sum );
+	Log("time : %d \n", t2-t1);
+	Log("diff : %f\n", sum64 /(IMAGE_WIDTH * IMAGE_HEIGHT));
+#else
+	LogWarning("Version Code 3 non disponible");
+#endif
+}
+
+
 
 void Renderer::Dispose()
 {

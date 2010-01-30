@@ -187,6 +187,11 @@ void init( void )
 {	
 	Log("Init start");
 
+#if USE_IPP
+ippStaticInit();
+#endif
+
+
     g_pD3D = Direct3DCreate9( D3D_SDK_VERSION );
 
     D3DDISPLAYMODE d3ddm;

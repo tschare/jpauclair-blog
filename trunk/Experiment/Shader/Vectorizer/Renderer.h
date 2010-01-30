@@ -12,9 +12,10 @@ public:
 	void Renderer::Render();
 	void Renderer::RenderShader();
 	void Renderer::RenderCode1();
-	void Renderer::RenderCode2();
+	void Renderer::RenderCode2() ;
 	void SetVertexBuffer(LPDIRECT3DVERTEXBUFFER9 pVertexBuffer);
 	void Dispose();
+	void RenderCode3();
 	D3DLOCKED_RECT m_lockedRect;
 	D3DLOCKED_RECT m_lockedRect2;
 	D3DSURFACE_DESC m_desc; 
