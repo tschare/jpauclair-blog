@@ -1,5 +1,5 @@
 #pragma once
-#pragma warning(disable:4786)
+
 #ifndef _MAIN_H_
 #define _MAIN_H_
 //#define NOMINMAX
