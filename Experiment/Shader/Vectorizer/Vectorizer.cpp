@@ -291,8 +291,8 @@ void initEffect( void )
 	// Create two test textures for our effect to use...
 	//
 
-	D3DXCreateTextureFromFile( g_pd3dDevice, "test.bmp", &g_pTexture_0 );
-	D3DXCreateTextureFromFile( g_pd3dDevice, "test2.bmp", &g_pTexture_1 );
+	D3DXCreateTextureFromFile( g_pd3dDevice, "noir.bmp", &g_pTexture_0 );
+	D3DXCreateTextureFromFile( g_pd3dDevice, "blanc.bmp", &g_pTexture_1 );
 
 	HRESULT hr;
 	LPD3DXBUFFER pBufferErrors = NULL;
@@ -415,7 +415,7 @@ void render( void )
  time : 547 
  diff : 778.812500
 */
-	
+	/*
 	if(FAILED(g_pd3dDevice->SetRenderTarget(0, m_pTexSurface)))
 	{
 		LogDebug("Failed SetRenderTarget");
@@ -469,7 +469,7 @@ void render( void )
 	g_pd3dDevice->EndScene();
 		
 
-
+*/
 
 #pragma endregion Version Shader
 
@@ -478,7 +478,8 @@ void render( void )
 	/*
 	Sum : 7340160
 	time : 64 
-	diff : 448.007813
+	diff : 448.007813*/
+
 	//Version 2
 	int s1=0;
 	D3DLOCKED_RECT m_lockedRect;
@@ -505,7 +506,7 @@ void render( void )
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
-*/
+
 #pragma endregion Version 2
 
 #pragma region Version 3
@@ -544,8 +545,8 @@ __m128i Var3;
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
-	
-*/
+	*/
+
 #pragma endregion Version 3
 
 	__int64 t2 = timeGetTime();
