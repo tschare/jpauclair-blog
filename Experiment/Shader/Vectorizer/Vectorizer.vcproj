@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="Vectorizer"
 	ProjectGUID="{993108E1-69D3-452C-8FD1-AE4C48C2C998}"
 	RootNamespace="Vectorizer"
@@ -84,6 +84,7 @@
 				ProgramDatabaseFile=".\Debug/Vectorizer.pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
+				FixedBaseAddress="1"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -175,6 +176,7 @@
 				ProgramDatabaseFile=".\Release/Vectorizer.pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
+				FixedBaseAddress="1"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
@@ -214,6 +216,10 @@
 			</File>
 			<File
 				RelativePath=".\Renderer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TriangleMesh.cpp"
 				>
 			</File>
 			<File
@@ -265,6 +271,10 @@
 		</File>
 		<File
 			RelativePath=".\Renderer.h"
+			>
+		</File>
+		<File
+			RelativePath=".\TriangleMesh.h"
 			>
 		</File>
 	</Files>

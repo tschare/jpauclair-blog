@@ -52,7 +52,6 @@ void Renderer::initEffect( void )
 	//
 	// Create two test textures for our effect to use...
 	//
-
 	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "noir.bmp", &g_pTexture_0 )))
 	{
 		LogError("Failed to D3DXCreateTextureFromFile noir.bmp");
@@ -83,17 +82,26 @@ void Renderer::Render()
 	g_matWorld = matTrans;
 	C->m_pD3DDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
 
+	
 	RenderShader();
 	RenderCode1();
 	RenderCode2();
 	RenderCode3();
+	RenderTriangle();
+	RenderTriangleFast();
 	LogMemoryUsage();
-	
 }
 
 
 void Renderer::RenderShader()
 {
+
+	#if	USE_ITT
+	__itt_event Render0;
+	Render0 = __itt_event_create("Render 0", 8 );
+	__itt_event_start( Render0 );
+	#endif
+
 	t1 = timeGetTime();
 
 	/*
@@ -163,11 +171,20 @@ void Renderer::RenderShader()
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
 	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
+	
+	#if	USE_ITT
+	__itt_event_end( Render0 );
+	#endif
 
 }
 
 void Renderer::RenderCode1()
 {
+	#if	USE_ITT
+	__itt_event Render1;
+	Render1 = __itt_event_create("Render 1", 8 );
+	__itt_event_start( Render1 );
+	#endif
 	t1 = timeGetTime();
 
 	/*
@@ -203,10 +220,19 @@ void Renderer::RenderCode1()
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
 	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
+	
+	#if	USE_ITT
+	__itt_event_end( Render1 );
+	#endif
 }
 
 void Renderer::RenderCode2()
 {
+	#if	USE_ITT
+	__itt_event Render2;
+	Render2 = __itt_event_create("Render 2", 8 );
+	__itt_event_start( Render2 );
+	#endif
 	t1 = timeGetTime();
 
 /*
@@ -233,7 +259,7 @@ diff : 448.007813
 			Var3 = _mm_sad_epu8(*(Var1++),*(Var2++));
 			//Var3 = _mm_sub_ps(*(Var1),*(Var2));
 			//LogDebug("%d %d %d %d\n", (Var3).m128i_u8[0], (Var3).m128i_u8[1], (Var3).m128i_u8[2], (Var3).m128i_u8[3]);
-			sum += (Var3).m128i_u16[0] + (Var3).m128i_u16[4];
+			sum += Var3.m128i_u16[0] + Var3.m128i_u16[4];
 		}
 
 		g_pTexture_0->UnlockRect(0);
@@ -245,7 +271,9 @@ diff : 448.007813
 	Log("Sum : %d\n",sum );
 	Log("time : %d \n", t2-t1);
 	Log("diff : %f\n", sum /(IMAGE_WIDTH*IMAGE_HEIGHT));
-
+	#if	USE_ITT
+	__itt_event_end( Render2 );
+	#endif
 }
 
 
@@ -253,6 +281,12 @@ diff : 448.007813
 
 void Renderer::RenderCode3()
 {
+	#if	USE_ITT
+	__itt_event Render3;
+	Render3 = __itt_event_create("Render 3", 8 );
+	__itt_event_start( Render3 );
+	#endif
+
 #if USE_IPP
 	/*
 	Sum : 12533760 
@@ -262,36 +296,161 @@ void Renderer::RenderCode3()
 	Ipp8u *Var1,*Var2;
 	Ipp8u *Var3 = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 	
-	ippSetNumThreads(2);
+	ippSetNumThreads(20);
 	//Regions of interest
 	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
 
 	Ipp64f sum64;
-
-	t1 = timeGetTime();
-	for(int x=0;x<1000;x++)
+	
+	for(int x=0;x<1;x++)
 	{
-		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
+		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY | D3DLOCK_DONOTWAIT) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var1 = (Ipp8u *)m_lockedRect.pBits;
 
-		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); }
+		D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
+		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var2 = (Ipp8u*)m_lockedRect2.pBits;
 		
-		IppStatus s = ippiAbsDiff_8u_C1R(Var1,FullImageROI.width,Var2,FullImageROI.width,Var3,FullImageROI.width,FullImageROI);
+		ippiAbsDiff_8u_C1R(Var1,FullImageROI.width,Var2,FullImageROI.width,Var3,FullImageROI.width,FullImageROI);
 		ippiSum_8u_C1R(Var3,FullImageROI.width,FullImageROI,&sum64);
 
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
 
-	t2 = timeGetTime();
 	LogWarning("\nVersion Code 3\n");
-	Log("Sum : %d\n",sum );
+
 	Log("time : %d \n", t2-t1);
 	Log("diff : %f\n", sum64 /(IMAGE_WIDTH * IMAGE_HEIGHT));
 #else
 	LogWarning("Version Code 3 non disponible");
 #endif
+	#if	USE_ITT
+	__itt_event_end( Render3 );
+	#endif
+}
+
+
+void Renderer::RenderTriangle()
+{
+	UINT *Var2;//, *Var3;
+	LPDIRECT3DTEXTURE9 g_pTexture ;
+	if(FAILED(C->m_pD3DDevice->CreateTexture(IMAGE_WIDTH, IMAGE_HEIGHT, 1, D3DUSAGE_DYNAMIC,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&g_pTexture,NULL)))
+	{
+		LogError("Failed CreateTexture");
+		PostQuitMessage(0);
+	}
+
+	t1 = timeGetTime();
+
+	UINT pos;
+	for(int x=0;x<1000;x++)
+	{
+		VertexT * v1 = new VertexT(5,5,0);
+		VertexT * v2 = new VertexT(5,50,0);
+		VertexT * v3 = new VertexT(50,5,0);
+
+		if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+		Var2 = (UINT*)m_lockedRect2.pBits;
+		pos = (UINT)&*Var2;
+
+		for(int y=0;y<50;y++)
+		{
+			v1->x +=1;
+			v2->x +=1;
+			v3->x +=1;
+			triangle(*v1,*v2,*v3,Var2 );
+			(Var2) = (UINT*)pos;
+		}
+		
+		g_pTexture->UnlockRect(0);
+	}
+	t2 = timeGetTime();
+	LogWarning("RenderTriangle\n");
+	Log("time : %d \n", t2-t1);
+	D3DXSaveTextureToFile("Triangle.bmp",D3DXIFF_BMP,g_pTexture,NULL);
+}
+void Renderer::RenderTriangleFast()
+{
+	UINT *Var2;//, *Var3;
+	LPDIRECT3DTEXTURE9 g_pTexture ;
+	if(FAILED(C->m_pD3DDevice->CreateTexture(IMAGE_WIDTH, IMAGE_HEIGHT, 1, D3DUSAGE_DYNAMIC,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&g_pTexture,NULL)))
+	{
+		LogError("Failed CreateTexture");
+		PostQuitMessage(0);
+	}
+
+	t1 = timeGetTime();
+
+	UINT pos;
+	for(int x=0;x<1000;x++)
+	{
+		VertexT * v1 = new VertexT(5,5,0);
+		VertexT * v2 = new VertexT(5,50,0);
+		VertexT * v3 = new VertexT(50,5,0);
+
+		if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+		Var2 = (UINT*)m_lockedRect2.pBits;
+		pos = (UINT)&*Var2;
+
+		TriangleMesh *tm = new TriangleMesh();
+
+		for(int y=0;y<50;y++)
+		{
+			v1->x +=1;
+			v2->x +=1;
+			v3->x +=1;
+			tm->Set(*v1,*v2,*v3,0xcdcdcdcd,0.5f);
+			tm->Rasterize(Var2);
+			(Var2) = (UINT*)pos;
+		}
+
+		g_pTexture->UnlockRect(0);
+	}
+	t2 = timeGetTime();
+	LogWarning("RenderTriangleFast\n");
+	Log("time : %d \n", t2-t1);
+	D3DXSaveTextureToFile("Triangle.bmp",D3DXIFF_BMP,g_pTexture,NULL);
+}
+
+void Renderer::triangle(VertexT &v1, VertexT &v2, VertexT &v3 , UINT *var)
+{
+	float y1 = v1.y;
+	float y2 = v2.y;
+	float y3 = v3.y;
+
+	float x1 = v1.x;
+	float x2 = v2.x;
+	float x3 = v3.x;
+
+	// Bounding rectangle	
+	int minx = (int)min(x1, min(x2, x3));
+	int maxx = (int)max(x1, max(x2, x3));
+	int miny = (int)min(y1, min (y2, y3));
+	int maxy = (int)max(y1, max(y2, y3));
+
+	//LogDebug("%d %d %d %d\n", minx,maxx, miny, maxy);
+	//char * colorBuffer = new char[128*128*4];
+	int stride = 128 ;
+	//(char*&)colorBuffer += miny * stride;
+	var += (miny * stride) + minx;
+	// Scan through bounding rectangle
+	for(int y = miny; y < maxy; y++)
+	{
+		for(int x = minx; x < maxx; x++)
+		{
+			if( ((x1 - x2) * (y - y1) - (y1 - y2) * (x - x1) > 0 && 
+				 (x2 - x3) * (y - y2) - (y2 - y3) * (x - x2) > 0 && 
+				 (x3 - x1) * (y - y3) - (y3 - y1) * (x - x3) > 0))
+			{
+				(*var) = 0x00555555; // White	
+			}
+			var++;
+		}
+
+		var += stride - maxx + minx;
+		//var +=4;
+	}
 }
 
 

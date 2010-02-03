@@ -10,8 +10,14 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "winmm.lib") 
 
-#define USE_IPP 0
+#define USE_ITT 0
 
+#if USE_ITT
+	#pragma comment(lib, "libittnotify.lib")
+	#include "libittnotify.h"
+#endif
+
+#define USE_IPP 1
 
 #if USE_IPP
 	//ipp core
@@ -64,8 +70,24 @@ public:
 struct Vertex
 {
 	float x, y, z, w;
-	DWORD dif;
+	int dif;
 	float tu, tv;
+};
+
+
+struct VertexT
+{
+	float x, y, z;
+	VertexT(float ax, float ay,float az)
+	{
+		x = ax; y =ay; z= az;
+	}
+};
+
+struct TRs
+{
+	int minx;
+	int maxx;
 };
 
 
@@ -76,5 +98,11 @@ struct Vertex
 #ifndef xmin
 #define xmin(a,b)	(((a) < (b)) ? (a) : (b))
 #endif
+
+
+//#ifndef xmin
+#define min3(a,b,c)	(((a) < (b)) ? (((a) < (c)) ? (a) : (b)) : ((b) < (c)) ? (b) : (c))
+#define max3(a,b,c)	(((a) > (b)) ? (((a) > (c)) ? (a) : (b)) : ((b) > (c)) ? (b) : (c))
+//#endif
 
 #endif
