@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Main.h"
-
+#include "TriangleMesh.h"
 class Renderer
 {
 public:
@@ -16,6 +16,12 @@ public:
 	void SetVertexBuffer(LPDIRECT3DVERTEXBUFFER9 pVertexBuffer);
 	void Dispose();
 	void RenderCode3();
+	void Renderer::triangle(VertexT &v1, VertexT &v2, VertexT &v3 , UINT *var);
+
+	void Renderer::RenderTriangleFast();
+	void Renderer::RenderTriangle();
+	//void Renderer::triangle2(VertexT &v1, VertexT &v2, VertexT &v3 , int *var);
+
 	D3DLOCKED_RECT m_lockedRect;
 	D3DLOCKED_RECT m_lockedRect2;
 	D3DSURFACE_DESC m_desc; 
@@ -24,7 +30,7 @@ public:
 	D3DXMATRIX g_matView;
 	D3DXMATRIX g_matProj;
 
-	__int64 t1,t2;
+	DWORD t1,t2;
 	long sum;
 	COMMON *C;
 
