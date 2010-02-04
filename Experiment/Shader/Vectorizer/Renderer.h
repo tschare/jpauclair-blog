@@ -15,7 +15,7 @@ public:
 	void Renderer::RenderCode2() ;
 	void SetVertexBuffer(LPDIRECT3DVERTEXBUFFER9 pVertexBuffer);
 	void Dispose();
-	void RenderCode3();
+	UINT RenderCode3(Ipp8u* writeBuff);
 	void Renderer::triangle(VertexT &v1, VertexT &v2, VertexT &v3 , UINT *var);
 
 	void Renderer::RenderTriangleFast();

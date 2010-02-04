@@ -52,7 +52,7 @@ void Renderer::initEffect( void )
 	//
 	// Create two test textures for our effect to use...
 	//
-	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "noir.bmp", &g_pTexture_0 )))
+	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "Mona_Lisa.bmp", &g_pTexture_0 )))
 	{
 		LogError("Failed to D3DXCreateTextureFromFile noir.bmp");
 	}
@@ -93,7 +93,7 @@ void Renderer::Render()
 	//RenderShader();
 	//RenderCode1();
 	//RenderCode2();
-	RenderCode3();
+	
 	//RenderTriangle();
 	RenderTriangleFast();
 	//LogMemoryUsage();
@@ -286,7 +286,7 @@ diff : 448.007813
 
 
 
-void Renderer::RenderCode3()
+UINT Renderer::RenderCode3(Ipp8u* writeBuff)
 {
 	#if	USE_ITT
 	__itt_event Render3;
@@ -310,7 +310,7 @@ void Renderer::RenderCode3()
 
 	//Ipp64f sum64;
 	
-	const int CORE_COUNT=8;
+	const int CORE_COUNT=1;
 
 	Ipp8u* Var1[CORE_COUNT];
 	Ipp8u* Var2[CORE_COUNT];
@@ -319,7 +319,8 @@ void Renderer::RenderCode3()
 
 	UINT pos;
 
-	if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY | D3DLOCK_DONOTWAIT) != D3D_OK)  { LogDebug("Failed 1"); }
+	if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); } //D3DLOCK_DONOTWAIT
+	
 	Tmp = (Ipp8u *)m_lockedRect.pBits;
 	pos = (UINT)&*Tmp;
 	for(int i=0;i<CORE_COUNT;i++)
@@ -328,15 +329,15 @@ void Renderer::RenderCode3()
 		Var3[i] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 	}
 
-	for(int x=0;x<100000/CORE_COUNT;x++)
+	for(int x=0;x<1;x++)
 	{
 		//MultiThreading loop
-		#pragma omp parallel for num_threads(CORE_COUNT)
+		//#pragma omp parallel for num_threads(CORE_COUNT)
 		for (int j=0;j<CORE_COUNT;j++)
 		{
 			//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
-			if(g_pTexture_X[j]->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-			Var2[j] = (Ipp8u*)m_lockedRect2.pBits;
+			//if(g_pTexture_X[j]->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+			Var2[j] = writeBuff;//(Ipp8u*)m_lockedRect2.pBits;
 			
 			ippiAbsDiff_8u_C1R(Var1[j],FullImageROI.width,Var2[j],FullImageROI.width,Var3[j],FullImageROI.width,FullImageROI);
 			ippiSum_8u_C1R(Var3[j],FullImageROI.width,FullImageROI,&sum64[j]);
@@ -347,22 +348,24 @@ void Renderer::RenderCode3()
 	}
 	g_pTexture_0->UnlockRect(0);
 
-	Ipp64f sum64Final;
+	Ipp64f sum64Final=0.0f;
 	for(int i=0;i<CORE_COUNT;i++)
 	{
-		sum64Final += sum64[i]/(IMAGE_WIDTH * IMAGE_HEIGHT);
+		sum64Final += sum64[i];
 	}
 	t2 = timeGetTime();
-	LogWarning("\nMultiThreaded ippiAbsDiff_8u_C1R Version\n");
+	//LogWarning("\nMultiThreaded ippiAbsDiff_8u_C1R Version\n");
 
-	Log("time : %d \n", t2-t1);
-	Log("diff : %f\n", sum64Final /CORE_COUNT);
+	//Log("time : %d \n", t2-t1);
+	//Log("diff : %f\n", sum64Final/CORE_COUNT);
 #else
 	LogWarning("Version Code 3 non disponible");
 #endif
 	#if	USE_ITT
 	__itt_event_end( Render3 );
 	#endif
+
+	return UINT((double)sum64Final /(double)CORE_COUNT);
 }
 
 
@@ -442,47 +445,73 @@ void Renderer::RenderTriangleFast()
 	const int TRIANGLE_COUNT=50;
 
 	Ipp8u* Var3[TRIANGLE_COUNT];
+	MyTriangle tri[TRIANGLE_COUNT];
+	
+
+	//tri[0].v1
 	VertexT * v1[TRIANGLE_COUNT];
 	VertexT * v2[TRIANGLE_COUNT];
 	VertexT * v3[TRIANGLE_COUNT];
+	
+	MyImage img;
+	MyImage bestImg;
 
+	img.score = 0xFFFFFFFA;
 	TriangleMesh *tm[TRIANGLE_COUNT];
-//	TriangleMesh *tm2[TRIANGLE_COUNT];
-//	TriangleMesh *tm3[16];
+
 	for(int i=0;i<TRIANGLE_COUNT;i++)
 	{
+
+		img.tri[i].v1.x = rand()%126+1;	img.tri[i].v2.x = rand()%126+1;	img.tri[i].v3.x = rand()%126+1;
+		img.tri[i].v1.y = rand()%126+1;	img.tri[i].v2.y = rand()%126+1;	img.tri[i].v3.y = rand()%126+1;
+		img.tri[i].color = ((rand()%256)) + ((rand()%256)<<8) + ((rand()%256)<<16) +((rand()%256)<<24);
+
 		v1[i] = new VertexT(5,5,0);
 		v2[i] = new VertexT(5,50,0);
 		v3[i] = new VertexT(50,5,0);
 		tm[i] = new TriangleMesh();
-		//tm2[y] = new TriangleMesh();
-		//tm3[y] = new TriangleMesh();
+
 		Var3[i] = (Ipp8u*)pos;
 	}
 
-	for(int x=0;x<10000;x++)
+	memcpy(&bestImg,&img,sizeof(bestImg));
+
+	srand(timeGetTime());
+	bestImg.score = 0xFFFFFFF;
+	for(int x=0;x<100000;x++)
 	{		
 		//Clear background
 		ippiSet_8u_C1R(0,Var2,512,FullImage);
-
- 		#pragma omp parallel for num_threads(8)
+		memcpy(&img,&bestImg,sizeof(bestImg));
+ 		//#pragma omp parallel for num_threads(8)
 		for(int y=0;y<TRIANGLE_COUNT;y++)
 		{
-			v1[y]->x = 5;	v2[y]->x = 5;	v3[y]->x = 50;
-			tm[y]->Set(*v1[y],*v2[y],*v3[y],0x33FF0000);
+			if (rand()%5==0)
+			{
+				img.tri[y].v1.x = rand()%126+1;	img.tri[y].v2.x = rand()%126+1;	img.tri[y].v3.x = rand()%126+1;
+				img.tri[y].v1.y = rand()%126+1;	img.tri[y].v2.y = rand()%126+1;	img.tri[y].v3.y = rand()%126+1;
+				img.tri[y].color = ((rand()%256)) + ((rand()%256)<<8) + ((rand()%256)<<16) +((rand()%256)<<24);
+
+				tm[y]->Set(img.tri[y].v1, img.tri[y].v2, img.tri[y].v3, img.tri[y].color);
+			}
 			tm[y]->Rasterize(Var3[y]);			
-/*
-			v1[y]->x = 25;	v2[y]->x = 25;	v3[y]->x = 70;
-			tm2[y]->Set(*v1[y],*v2[y],*v3[y],0x3300FF00);
-			tm2[y]->Rasterize(Var3[y]);
-
-			v1[y]->x =45;	v2[y]->x =45;	v3[y]->x =90;
-			tm3[y]->Set(*v1[y],*v2[y],*v3[y],0x330000FF);
-			tm3[y]->Rasterize(Var3[y]);
-*/
 			Var3[y]= (Ipp8u*)pos;
+			
+			
 		}
-
+		UINT result = RenderCode3((Ipp8u*)pos);
+		img.score = result;
+		if (result < bestImg.score)
+		{
+			memcpy(&bestImg,&img,sizeof(img));
+			bestImg.score = img.score;
+			LogDebug("SPECIAL  %d - Diff: %d - Now:%d\ sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+		}
+		if (x%1000 == 0)
+		{
+			LogDebug("Iteration %d - Diff: %d - Now:%d\ sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+			
+		}
 		//CheckHeap();
 	}
 	g_pTexture->UnlockRect(0);
