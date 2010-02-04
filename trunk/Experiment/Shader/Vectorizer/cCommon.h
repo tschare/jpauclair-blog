@@ -78,11 +78,32 @@ struct Vertex
 struct VertexT
 {
 	float x, y, z;
+	VertexT() {}
 	VertexT(float ax, float ay,float az)
 	{
 		x = ax; y =ay; z= az;
 	}
 };
+struct MyTriangle
+{
+	VertexT v1, v2, v3;
+	UINT color;
+	MyTriangle() 
+	{
+	}
+	
+};
+
+
+struct MyImage
+{
+	MyTriangle tri[50];
+	UINT score;
+	MyImage() {}
+};
+
+
+
 
 struct TRs
 {
