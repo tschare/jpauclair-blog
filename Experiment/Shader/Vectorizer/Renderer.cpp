@@ -86,7 +86,7 @@ void Renderer::Render()
 	//RenderShader();
 	//RenderCode1();
 	//RenderCode2();
-	//RenderCode3();
+	RenderCode3();
 	//RenderTriangle();
 	RenderTriangleFast();
 	//LogMemoryUsage();
@@ -293,6 +293,7 @@ void Renderer::RenderCode3()
 	time : 17 
 	diff : 765.000000 
 	*/		
+	t1 = timeGetTime();
 	Ipp8u *Var1,*Var2;
 	Ipp8u *Var3 = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 	
@@ -301,13 +302,19 @@ void Renderer::RenderCode3()
 	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
 
 	Ipp64f sum64;
-	
-	for(int x=0;x<1;x++)
+	/*
+	const int TRIANGLE_COUNT=50;
+
+	Ipp8u* Var1[TRIANGLE_COUNT];
+	Ipp8u* Var2[TRIANGLE_COUNT];
+	Ipp64f sum64[TRIANGLE_COUNT];
+*/
+	for(int x=0;x<100000;x++)
 	{
 		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY | D3DLOCK_DONOTWAIT) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var1 = (Ipp8u *)m_lockedRect.pBits;
 
-		D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
+		//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
 		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
 		Var2 = (Ipp8u*)m_lockedRect2.pBits;
 		
@@ -317,7 +324,7 @@ void Renderer::RenderCode3()
 		g_pTexture_0->UnlockRect(0);
 		g_pTexture_1->UnlockRect(0);
 	}
-
+	t2 = timeGetTime();
 	LogWarning("\nVersion Code 3\n");
 
 	Log("time : %d \n", t2-t1);
@@ -373,7 +380,8 @@ void Renderer::RenderTriangle()
 
 void Renderer::RenderTriangleFast()
 {
-	#if	USE_IPP
+
+#if	USE_IPP
 	Ipp8u *Var2;//, *Var3;
 	LPDIRECT3DTEXTURE9 g_pTexture ;
 	if(FAILED(C->m_pD3DDevice->CreateTexture(IMAGE_WIDTH, IMAGE_HEIGHT, 1, D3DUSAGE_DYNAMIC,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&g_pTexture,NULL)))
@@ -384,14 +392,6 @@ void Renderer::RenderTriangleFast()
 
 	t1 = timeGetTime();
 
-	VertexT * v1 = new VertexT(5,5,0);
-	VertexT * v2 = new VertexT(5,50,0);
-	VertexT * v3 = new VertexT(50,5,0);
-
-	TriangleMesh *tm = new TriangleMesh();
-	TriangleMesh *tm2 = new TriangleMesh();
-	TriangleMesh *tm3 = new TriangleMesh();
-
 	IppiSize FullImage = {int(IMAGE_WIDTH)<<2,IMAGE_HEIGHT};
 	UINT pos;
 
@@ -401,42 +401,65 @@ void Renderer::RenderTriangleFast()
 	__itt_event_start( Render4 );
 #endif
 
-	for(int x=0;x<1000;x++)
+	//ippSetNumThreads(1);
+	if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+	Var2 = (Ipp8u*)m_lockedRect2.pBits;
+
+	//pointer pour ce repositionner
+	pos = (UINT)&*Var2;
+
+	//reste a tester
+	//#pragma omp parallel for default(none) private(i,j,sum) shared(m,n,a,b,c)
+
+	const int TRIANGLE_COUNT=50;
+
+	Ipp8u* Var3[TRIANGLE_COUNT];
+	VertexT * v1[TRIANGLE_COUNT];
+	VertexT * v2[TRIANGLE_COUNT];
+	VertexT * v3[TRIANGLE_COUNT];
+
+	TriangleMesh *tm[TRIANGLE_COUNT];
+//	TriangleMesh *tm2[TRIANGLE_COUNT];
+//	TriangleMesh *tm3[16];
+	for(int i=0;i<TRIANGLE_COUNT;i++)
+	{
+		v1[i] = new VertexT(5,5,0);
+		v2[i] = new VertexT(5,50,0);
+		v3[i] = new VertexT(50,5,0);
+		tm[i] = new TriangleMesh();
+		//tm2[y] = new TriangleMesh();
+		//tm3[y] = new TriangleMesh();
+		Var3[i] = (Ipp8u*)pos;
+	}
+
+	for(int x=0;x<10000;x++)
 	{		
-		if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var2 = (Ipp8u*)m_lockedRect2.pBits;
-
-		//pointer pour ce repositionner
-		pos = (UINT)&*Var2;
-
-		//un clear, D3DLOCK_DISCARD clear pas vraiment ?
+		//Clear background
 		ippiSet_8u_C1R(0,Var2,512,FullImage);
 
-		//reste a tester
-		//#pragma omp parallel for default(none) private(i,j,sum) shared(m,n,a,b,c)
-
-		#pragma omp parallel for 
-		for(int y=0;y<16;y++)
+ 		#pragma omp parallel for num_threads(8)
+		for(int y=0;y<TRIANGLE_COUNT;y++)
 		{
-			v1->x = 5;	v2->x = 5;	v3->x = 50;
-			tm->Set(*v1,*v2,*v3,0x33FF0000);
-			tm->Rasterize(Var2);
+			v1[y]->x = 5;	v2[y]->x = 5;	v3[y]->x = 50;
+			tm[y]->Set(*v1[y],*v2[y],*v3[y],0x33FF0000);
+			tm[y]->Rasterize(Var3[y]);			
+/*
+			v1[y]->x = 25;	v2[y]->x = 25;	v3[y]->x = 70;
+			tm2[y]->Set(*v1[y],*v2[y],*v3[y],0x3300FF00);
+			tm2[y]->Rasterize(Var3[y]);
 
-			v1->x = 25;	v2->x = 25;	v3->x = 70;
-			tm2->Set(*v1,*v2,*v3,0x3300FF00);
-			tm2->Rasterize(Var2);
-
-			v1->x =45;	v2->x =45;	v3->x =90;
-			tm3->Set(*v1,*v2,*v3,0x330000FF);
-			tm3->Rasterize(Var2);
-			
-			(Var2) = (Ipp8u*)pos;
+			v1[y]->x =45;	v2[y]->x =45;	v3[y]->x =90;
+			tm3[y]->Set(*v1[y],*v2[y],*v3[y],0x330000FF);
+			tm3[y]->Rasterize(Var3[y]);
+*/
+			Var3[y]= (Ipp8u*)pos;
 		}
 
-		g_pTexture->UnlockRect(0);
-		CheckHeap();
+		//CheckHeap();
 	}
+	g_pTexture->UnlockRect(0);
 	t2 = timeGetTime();
+	
 
 #if	USE_ITT
 	__itt_event_end( Render4 );
