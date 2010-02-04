@@ -188,7 +188,7 @@ void init( void )
 	Log("Init start");
 
 #if USE_IPP
-ippStaticInit();
+	ippStaticInit();
 #endif
 
 

@@ -83,13 +83,13 @@ void Renderer::Render()
 	C->m_pD3DDevice->SetTransform( D3DTS_WORLD, &g_matWorld );
 
 	
-	RenderShader();
-	RenderCode1();
-	RenderCode2();
-	RenderCode3();
-	RenderTriangle();
+	//RenderShader();
+	//RenderCode1();
+	//RenderCode2();
+	//RenderCode3();
+	//RenderTriangle();
 	RenderTriangleFast();
-	LogMemoryUsage();
+	//LogMemoryUsage();
 }
 
 
@@ -259,7 +259,7 @@ diff : 448.007813
 			Var3 = _mm_sad_epu8(*(Var1++),*(Var2++));
 			//Var3 = _mm_sub_ps(*(Var1),*(Var2));
 			//LogDebug("%d %d %d %d\n", (Var3).m128i_u8[0], (Var3).m128i_u8[1], (Var3).m128i_u8[2], (Var3).m128i_u8[3]);
-			sum += Var3.m128i_u16[0] + Var3.m128i_u16[4];
+			//sum += Var3.m128i_u16[0] + Var3.m128i_u16[4];
 		}
 
 		g_pTexture_0->UnlockRect(0);
@@ -296,7 +296,7 @@ void Renderer::RenderCode3()
 	Ipp8u *Var1,*Var2;
 	Ipp8u *Var3 = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 	
-	ippSetNumThreads(20);
+	//ippSetNumThreads(2);
 	//Regions of interest
 	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
 
@@ -370,9 +370,11 @@ void Renderer::RenderTriangle()
 	Log("time : %d \n", t2-t1);
 	D3DXSaveTextureToFile("Triangle.bmp",D3DXIFF_BMP,g_pTexture,NULL);
 }
+
 void Renderer::RenderTriangleFast()
 {
-	UINT *Var2;//, *Var3;
+	#if	USE_IPP
+	Ipp8u *Var2;//, *Var3;
 	LPDIRECT3DTEXTURE9 g_pTexture ;
 	if(FAILED(C->m_pD3DDevice->CreateTexture(IMAGE_WIDTH, IMAGE_HEIGHT, 1, D3DUSAGE_DYNAMIC,D3DFMT_A8R8G8B8,D3DPOOL_SYSTEMMEM,&g_pTexture,NULL)))
 	{
@@ -382,35 +384,67 @@ void Renderer::RenderTriangleFast()
 
 	t1 = timeGetTime();
 
-	UINT pos;
-	for(int x=0;x<1000;x++)
-	{
-		VertexT * v1 = new VertexT(5,5,0);
-		VertexT * v2 = new VertexT(5,50,0);
-		VertexT * v3 = new VertexT(50,5,0);
+	VertexT * v1 = new VertexT(5,5,0);
+	VertexT * v2 = new VertexT(5,50,0);
+	VertexT * v3 = new VertexT(50,5,0);
 
+	TriangleMesh *tm = new TriangleMesh();
+	TriangleMesh *tm2 = new TriangleMesh();
+	TriangleMesh *tm3 = new TriangleMesh();
+
+	IppiSize FullImage = {int(IMAGE_WIDTH)<<2,IMAGE_HEIGHT};
+	UINT pos;
+
+#if	USE_ITT
+	__itt_event Render4;
+	Render4 = __itt_event_create("Render 4", 8 );
+	__itt_event_start( Render4 );
+#endif
+
+	for(int x=0;x<1000;x++)
+	{		
 		if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var2 = (UINT*)m_lockedRect2.pBits;
+		Var2 = (Ipp8u*)m_lockedRect2.pBits;
+
+		//pointer pour ce repositionner
 		pos = (UINT)&*Var2;
 
-		TriangleMesh *tm = new TriangleMesh();
+		//un clear, D3DLOCK_DISCARD clear pas vraiment ?
+		ippiSet_8u_C1R(0,Var2,512,FullImage);
 
-		for(int y=0;y<50;y++)
+		//reste a tester
+		//#pragma omp parallel for default(none) private(i,j,sum) shared(m,n,a,b,c)
+
+		#pragma omp parallel for 
+		for(int y=0;y<16;y++)
 		{
-			v1->x +=1;
-			v2->x +=1;
-			v3->x +=1;
-			tm->Set(*v1,*v2,*v3,0xcdcdcdcd,0.5f);
+			v1->x = 5;	v2->x = 5;	v3->x = 50;
+			tm->Set(*v1,*v2,*v3,0x33FF0000);
 			tm->Rasterize(Var2);
-			(Var2) = (UINT*)pos;
+
+			v1->x = 25;	v2->x = 25;	v3->x = 70;
+			tm2->Set(*v1,*v2,*v3,0x3300FF00);
+			tm2->Rasterize(Var2);
+
+			v1->x =45;	v2->x =45;	v3->x =90;
+			tm3->Set(*v1,*v2,*v3,0x330000FF);
+			tm3->Rasterize(Var2);
+			
+			(Var2) = (Ipp8u*)pos;
 		}
 
 		g_pTexture->UnlockRect(0);
+		CheckHeap();
 	}
 	t2 = timeGetTime();
+
+#if	USE_ITT
+	__itt_event_end( Render4 );
+#endif
 	LogWarning("RenderTriangleFast\n");
-	Log("time : %d \n", t2-t1);
+	LogDebug("time : %d \n", t2-t1);
 	D3DXSaveTextureToFile("Triangle.bmp",D3DXIFF_BMP,g_pTexture,NULL);
+#endif
 }
 
 void Renderer::triangle(VertexT &v1, VertexT &v2, VertexT &v3 , UINT *var)

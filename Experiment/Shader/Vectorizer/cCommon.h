@@ -17,7 +17,7 @@
 	#include "libittnotify.h"
 #endif
 
-#define USE_IPP 1
+#define USE_IPP 0
 
 #if USE_IPP
 	//ipp core
