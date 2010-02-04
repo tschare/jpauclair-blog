@@ -38,6 +38,8 @@ public:
 
 	LPDIRECT3DTEXTURE9      g_pTexture_0 ;
 	LPDIRECT3DTEXTURE9      g_pTexture_1 ;
+	LPDIRECT3DTEXTURE9      g_pTexture_X[8] ;
+
 	LPDIRECT3DTEXTURE9 m_pTexRender;	
 	LPDIRECT3DSURFACE9 m_pTexSurface;
 	LPDIRECT3DSURFACE9 m_pTexSurface2;

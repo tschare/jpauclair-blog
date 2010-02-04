@@ -60,6 +60,13 @@ void Renderer::initEffect( void )
 	{
 		LogError("Failed to D3DXCreateTextureFromFile blanc.bmp");
 	}
+	for (int i=0;i<8;i++)
+	{
+		if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "blanc.bmp", &g_pTexture_X[i] )))
+		{
+			LogError("Failed to D3DXCreateTextureFromFile blanc.bmp");
+		}
+	}
 	LPD3DXBUFFER pBufferErrors = NULL;
 
 	if( FAILED(D3DXCreateEffectFromFile( C->m_pD3DDevice, "effect.fx",NULL,NULL, D3DXSHADER_ENABLE_BACKWARDS_COMPATIBILITY, NULL, &g_pEffect, &pBufferErrors )) )
@@ -294,41 +301,62 @@ void Renderer::RenderCode3()
 	diff : 765.000000 
 	*/		
 	t1 = timeGetTime();
-	Ipp8u *Var1,*Var2;
-	Ipp8u *Var3 = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+	Ipp8u *Tmp;//Var1,*Var2;
+	
 	
 	//ippSetNumThreads(2);
 	//Regions of interest
 	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
 
-	Ipp64f sum64;
-	/*
-	const int TRIANGLE_COUNT=50;
+	//Ipp64f sum64;
+	
+	const int CORE_COUNT=8;
 
-	Ipp8u* Var1[TRIANGLE_COUNT];
-	Ipp8u* Var2[TRIANGLE_COUNT];
-	Ipp64f sum64[TRIANGLE_COUNT];
-*/
-	for(int x=0;x<100000;x++)
+	Ipp8u* Var1[CORE_COUNT];
+	Ipp8u* Var2[CORE_COUNT];
+	Ipp8u *Var3[CORE_COUNT]; 
+	Ipp64f sum64[CORE_COUNT];
+
+	UINT pos;
+
+	if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY | D3DLOCK_DONOTWAIT) != D3D_OK)  { LogDebug("Failed 1"); }
+	Tmp = (Ipp8u *)m_lockedRect.pBits;
+	pos = (UINT)&*Tmp;
+	for(int i=0;i<CORE_COUNT;i++)
 	{
-		if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY | D3DLOCK_DONOTWAIT) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var1 = (Ipp8u *)m_lockedRect.pBits;
+		Var1[i] = (Ipp8u*)pos;
+		Var3[i] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+	}
 
-		//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
-		if(g_pTexture_1->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-		Var2 = (Ipp8u*)m_lockedRect2.pBits;
-		
-		ippiAbsDiff_8u_C1R(Var1,FullImageROI.width,Var2,FullImageROI.width,Var3,FullImageROI.width,FullImageROI);
-		ippiSum_8u_C1R(Var3,FullImageROI.width,FullImageROI,&sum64);
+	for(int x=0;x<100000/CORE_COUNT;x++)
+	{
+		//MultiThreading loop
+		#pragma omp parallel for num_threads(CORE_COUNT)
+		for (int j=0;j<CORE_COUNT;j++)
+		{
+			//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
+			if(g_pTexture_X[j]->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+			Var2[j] = (Ipp8u*)m_lockedRect2.pBits;
+			
+			ippiAbsDiff_8u_C1R(Var1[j],FullImageROI.width,Var2[j],FullImageROI.width,Var3[j],FullImageROI.width,FullImageROI);
+			ippiSum_8u_C1R(Var3[j],FullImageROI.width,FullImageROI,&sum64[j]);
 
-		g_pTexture_0->UnlockRect(0);
-		g_pTexture_1->UnlockRect(0);
+			
+			g_pTexture_X[j]->UnlockRect(0);
+		}
+	}
+	g_pTexture_0->UnlockRect(0);
+
+	Ipp64f sum64Final;
+	for(int i=0;i<CORE_COUNT;i++)
+	{
+		sum64Final += sum64[i]/(IMAGE_WIDTH * IMAGE_HEIGHT);
 	}
 	t2 = timeGetTime();
-	LogWarning("\nVersion Code 3\n");
+	LogWarning("\nMultiThreaded ippiAbsDiff_8u_C1R Version\n");
 
 	Log("time : %d \n", t2-t1);
-	Log("diff : %f\n", sum64 /(IMAGE_WIDTH * IMAGE_HEIGHT));
+	Log("diff : %f\n", sum64Final /CORE_COUNT);
 #else
 	LogWarning("Version Code 3 non disponible");
 #endif
@@ -516,5 +544,9 @@ void Renderer::Dispose()
 {
 	SAFERELEASE(g_pTexture_0);
 	SAFERELEASE(g_pTexture_1);
+	for (int i=0;i<8;i++)
+	{
+		SAFERELEASE(g_pTexture_X[i]);
+	}
 	SAFERELEASE(g_pEffect);
 }
