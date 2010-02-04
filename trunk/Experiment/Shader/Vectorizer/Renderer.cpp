@@ -286,7 +286,7 @@ diff : 448.007813
 
 
 
-UINT Renderer::RenderCode3(Ipp8u* writeBuff)
+UINT Renderer::RenderCode3(Ipp8u* readBuff, Ipp8u* writeBuff)
 {
 	#if	USE_ITT
 	__itt_event Render3;
@@ -326,7 +326,7 @@ UINT Renderer::RenderCode3(Ipp8u* writeBuff)
 	for(int i=0;i<CORE_COUNT;i++)
 	{
 		Var1[i] = (Ipp8u*)pos;
-		Var3[i] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+		Var3[i] = writeBuff; //(Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 	}
 
 	for(int x=0;x<1;x++)
@@ -337,7 +337,7 @@ UINT Renderer::RenderCode3(Ipp8u* writeBuff)
 		{
 			//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
 			//if(g_pTexture_X[j]->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-			Var2[j] = writeBuff;//(Ipp8u*)m_lockedRect2.pBits;
+			Var2[j] = readBuff;//(Ipp8u*)m_lockedRect2.pBits;
 			
 			ippiAbsDiff_8u_C1R(Var1[j],FullImageROI.width,Var2[j],FullImageROI.width,Var3[j],FullImageROI.width,FullImageROI);
 			ippiSum_8u_C1R(Var3[j],FullImageROI.width,FullImageROI,&sum64[j]);
@@ -478,12 +478,13 @@ void Renderer::RenderTriangleFast()
 
 	srand(timeGetTime());
 	bestImg.score = 0xFFFFFFF;
-	for(int x=0;x<100000;x++)
+	Ipp8u *writeBuff = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+	for(UINT x=0;x<0xFFFFFFFF;x++)
 	{		
 		//Clear background
 		ippiSet_8u_C1R(0,Var2,512,FullImage);
 		memcpy(&img,&bestImg,sizeof(bestImg));
- 		//#pragma omp parallel for num_threads(8)
+ 		//#pragma omp parallel for// num_threads(8)
 		for(int y=0;y<TRIANGLE_COUNT;y++)
 		{
 			if (rand()%5==0)
@@ -499,22 +500,28 @@ void Renderer::RenderTriangleFast()
 			
 			
 		}
-		UINT result = RenderCode3((Ipp8u*)pos);
+		UINT result = RenderCode3((Ipp8u*)pos, writeBuff);
 		img.score = result;
 		if (result < bestImg.score)
 		{
 			memcpy(&bestImg,&img,sizeof(img));
 			bestImg.score = img.score;
-			LogDebug("SPECIAL  %d - Diff: %d - Now:%d\ sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+			LogDebug("SPECIAL  %d - Diff: %d - Now:%d sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+			g_pTexture->UnlockRect(0);
+			char fileName[100];
+			sprintf(fileName, "result\\Triangle_%d.bmp", x);
+			D3DXSaveTextureToFile(fileName,D3DXIFF_BMP,g_pTexture,NULL);
 		}
-		if (x%1000 == 0)
+		if (x%10000 == 0)
 		{
-			LogDebug("Iteration %d - Diff: %d - Now:%d\ sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+			LogDebug("Iteration %d - Diff: %d - Now:%d sizeof()%d\n", x, bestImg.score,result,sizeof(bestImg));
+
+			
 			
 		}
 		//CheckHeap();
 	}
-	g_pTexture->UnlockRect(0);
+	
 	t2 = timeGetTime();
 	
 
