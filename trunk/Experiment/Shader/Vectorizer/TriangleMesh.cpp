@@ -29,24 +29,27 @@ void TriangleMesh::Set(VertexT v1, VertexT v2, VertexT v3, UINT c)
 	}
 
 	#if	USE_IPP
-	size.width = IMAGE_WIDTH;
-	size.height = 1;
+		size.width = IMAGE_WIDTH;
+		size.height = 1;
 
-	//Col[0] = c & 0xFF000000; Col[1] = c & 0x00FF0000; Col[2] = c & 0x0000FF00; Col[3] = c & 0x000000FF;
-	
-	Col[3] = (c >> 24) & 0xFF;
-	Col[2] = (c >> 16) & 0xFF;
-	Col[1] = (c >>8) & 0xFF;
-	Col[0] = c & 0xFF;
+		//Col[0] = c & 0xFF000000; Col[1] = c & 0x00FF0000; Col[2] = c & 0x0000FF00; Col[3] = c & 0x000000FF;
+		
+		Col[3] = (c >> 24) & 0xFF;
+		Col[2] = (c >> 16) & 0xFF;
+		Col[1] = (c >>8) & 0xFF;
+		Col[0] = c & 0xFF;
 
-	//LogDebug("%d %d %d %d\n",Col[0],Col[1],Col[2],Col[3]);
-	colorA = Col[3];
-	
-	ippiSet_8u_C4R(Col,Src,128,size);
+		//LogDebug("%d %d %d %d\n",Col[0],Col[1],Col[2],Col[3]);
+		colorA = Col[3];
+		
+		ippiSet_8u_C4R(Col,Src,128,size);
 	#endif
-	efla(v1.x, v1.y, v2.x, v2.y);
-	efla(v2.x, v2.y, v3.x, v3.y);
-	efla(v1.x, v1.y, v3.x, v3.y);
+
+	//http://www.edepot.com/algorithm.html
+	//Algorithm E is the fastest
+	eflaE(v1.x, v1.y, v2.x, v2.y);
+	eflaE(v2.x, v2.y, v3.x, v3.y);
+	eflaE(v1.x, v1.y, v3.x, v3.y);
 }
 
 #if	USE_IPP
@@ -106,6 +109,144 @@ public function RasterizeVector(dest:Vector.<uint>) : void
 	}				
 }	
 */
+// THE EXTREMELY FAST LINE ALGORITHM Variation B (Multiplication)
+void TriangleMesh::eflaB(int x, int y, int x2, int y2) {
+	bool yLonger=false;
+	int incrementVal;
+	int shortLen=y2-y;
+	int longLen=x2-x;
+
+	if (abs(shortLen)>abs(longLen)) {
+		int swap=shortLen;
+		shortLen=longLen;
+		longLen=swap;
+		yLonger=true;
+	}
+
+	if (longLen<0) incrementVal=-1;
+	else incrementVal=1;
+
+	double multDiff;
+	if (longLen==0.0) multDiff=(double)shortLen;
+	else multDiff=(double)shortLen/(double)longLen;
+	if (yLonger) {
+		for (int i=0;i!=longLen;i+=incrementVal) {
+			int xFinal = x+(int)((double)i*multDiff);
+			
+			if (xFinal < span[y+i].minx)
+			{
+				span[y+i].minx = xFinal;
+			}
+			else if (xFinal > span[y+i].maxx)
+			{
+				span[y+i].maxx = xFinal;
+			}
+		}
+	} else {
+		for (int i=0;i!=longLen;i+=incrementVal) {
+			int  xFinal = x + i;
+			
+			if (xFinal < span[(int)(y+i * multDiff)].minx)
+			{
+				span[(int)(y+i * multDiff)].minx = xFinal;
+			}
+			else if (xFinal > span[(int)(y+i * multDiff)].maxx)
+			{
+				span[(int)(y+i * multDiff)].maxx = xFinal;
+			}
+			//myPixel(surface,x+i,y+(int)((double)i*multDiff));
+		}
+	}
+}
+
+void TriangleMesh::eflaE(int x, int y, int x2, int y2) {
+   	bool yLonger=false;
+	int shortLen=y2-y;
+	int longLen=x2-x;
+	if (abs(shortLen)>abs(longLen)) {
+		int swap=shortLen;
+		shortLen=longLen;
+		longLen=swap;				
+		yLonger=true;
+	}
+	int decInc;
+	if (longLen==0) decInc=0;
+	else decInc = (shortLen << 16) / longLen;
+
+	if (yLonger) {
+		if (longLen>0) {
+			longLen+=y;
+			for (int j=0x8000+(x<<16);y<=longLen;++y) {
+				int xFinal = j>>16;
+				
+				if (xFinal < span[y].minx)
+				{
+					span[y].minx = xFinal;
+				}
+				else if (xFinal > span[y].maxx)
+				{
+					span[y].maxx = xFinal;
+				}
+				//myPixel(surface,j >> 16,y);	
+				j+=decInc;
+			}
+			return;
+		}
+		longLen+=y;
+		for (int j=0x8000+(x<<16);y>=longLen;--y) {
+			int xFinal = j>>16;
+			
+			if (xFinal < span[y].minx)
+			{
+				span[y].minx = xFinal;
+			}
+			else if (xFinal > span[y].maxx)
+			{
+				span[y].maxx = xFinal;
+			}
+			//myPixel(surface,j >> 16,y);	
+			j-=decInc;
+		}
+		return;	
+	}
+
+	if (longLen>0) {
+		longLen+=x;
+		for (int j=0x8000+(y<<16);x<=longLen;++x) {
+			int xFinal = x;
+			
+			if (xFinal < span[j>>16].minx)
+			{
+				span[j>>16].minx = xFinal;
+			}
+			else if (xFinal > span[j>>16].maxx)
+			{
+				span[j>>16].maxx = xFinal;
+			}
+			//myPixel(surface,x,j >> 16);
+			j+=decInc;
+		}
+		return;
+	}
+	longLen+=x;
+	for (int j=0x8000+(y<<16);x>=longLen;--x) {
+			int xFinal = x;
+			
+			if (xFinal < span[j>>16].minx)
+			{
+				span[j>>16].minx = xFinal;
+			}
+			else if (xFinal > span[j>>16].maxx)
+			{
+				span[j>>16].maxx = xFinal;
+			}
+		//myPixel(surface,x,j >> 16);
+		j-=decInc;
+	}
+
+}
+
+
 
 void TriangleMesh::efla(int x, int y , int x2 , int y2)
 {
