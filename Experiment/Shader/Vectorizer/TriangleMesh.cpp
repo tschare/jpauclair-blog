@@ -15,12 +15,16 @@ TriangleMesh::~TriangleMesh(void)
 
 }
 
-void TriangleMesh::Set(VertexT v1, VertexT v2, VertexT v3, UINT c)
+void TriangleMesh::Set(VertexT av1, VertexT av2, VertexT av3, UINT c)
 {
+	mV1 = av1;
+	mV2 = av2;
+	mV3 = av3;
+
 	dirty = false;
 	color = c;
-	minY = xmin(v1.y, xmin(v2.y, v3.y));
-	maxY = xmax(v1.y, xmax(v2.y, v3.y));
+	minY = xmin(mV1.y, xmin(mV2.y, mV3.y));
+	maxY = xmax(mV1.y, xmax(mV2.y, mV3.y));
 
 	for (int i = 0; i < IMAGE_HEIGHT ; i++)
 	{
@@ -46,10 +50,10 @@ void TriangleMesh::Set(VertexT v1, VertexT v2, VertexT v3, UINT c)
 	#endif
 
 	//http://www.edepot.com/algorithm.html
-	//Algorithm E is the fastest
-	eflaE(v1.x, v1.y, v2.x, v2.y);
-	eflaE(v2.x, v2.y, v3.x, v3.y);
-	eflaE(v1.x, v1.y, v3.x, v3.y);
+	//Algorithm E is the fastest, and JPD is the best
+	eflaE(mV1.x, mV1.y, mV2.x, mV2.y);
+	eflaE(mV2.x, mV2.y, mV3.x, mV3.y);
+	eflaE(mV1.x, mV1.y, mV3.x, mV3.y);
 }
 
 #if	USE_IPP
@@ -60,7 +64,6 @@ void TriangleMesh::Rasterize(Ipp8u *var)
 	{
 
 		size.width = (span[i].maxx - span[i].minx)<<2;
-		
 		
 		//Combines two images using constant alpha values.
 		ippiAlphaCompC_8u_C1R(	Src,
