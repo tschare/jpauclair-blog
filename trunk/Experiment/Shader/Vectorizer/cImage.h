@@ -6,6 +6,7 @@
 class cImage
 {
 public:
+
 	cImage(COMMON *pC);
 	~cImage(void);
 	void RenderImage();
@@ -22,8 +23,8 @@ public:
 
 private:
 
-	TriangleMesh	*mTriangles;
-	Ipp8u		*mCompareBuffer ;
+	TriangleMesh *mTriangles;
+	Ipp8u		 *mCompareBuffer ;
 	
 	UINT		mPixelCount;
 	__itt_event mRender;

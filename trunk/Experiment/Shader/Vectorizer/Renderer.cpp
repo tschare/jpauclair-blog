@@ -15,7 +15,7 @@ void Renderer::init()
 	//Create number of image
 
 	//Init and generate first set of data
-	#pragma omp parallel for //num_threads(CORE_COUNT)
+	//#pragma omp parallel for //num_threads(CORE_COUNT)
 	for(int x=0;x<NB_IMAGES;x++)
 	{
 		cImage *Images = new cImage(C);
@@ -45,7 +45,7 @@ void Renderer::Render()
 
 	t1 = timeGetTime();
 	Ipp64f TotalFitness=0;
-	#pragma omp parallel for //num_threads(CORE_COUNT)
+	//#pragma omp parallel for //num_threads(CORE_COUNT)
 	for(int x=0;x<NB_IMAGES;x++)
 	{
 		mImages[x]->RenderImage();
@@ -88,6 +88,7 @@ void Renderer::Render()
 		}
 
 		mImages[sel1]->CrossOver(mImages[sel2],&m_vec);
+		//PostQuitMessage(0);
 	}
 
 	mImages.clear();

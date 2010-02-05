@@ -5,9 +5,8 @@ TriangleMesh::TriangleMesh(void)
 	span = new TRs[(int)IMAGE_HEIGHT];
 	minY = 0;
 	maxY= (int)IMAGE_HEIGHT;
-	#if	USE_IPP
 	Src = (Ipp8u*) ippMalloc(IMAGE_WIDTH*4);
-	#endif
+
 }
 
 TriangleMesh::~TriangleMesh(void)
@@ -32,7 +31,6 @@ void TriangleMesh::Set(VertexT av1, VertexT av2, VertexT av3, UINT c)
 		span[i].maxx = 0;
 	}
 
-	#if	USE_IPP
 		size.width = IMAGE_WIDTH;
 		size.height = 1;
 
@@ -47,7 +45,6 @@ void TriangleMesh::Set(VertexT av1, VertexT av2, VertexT av3, UINT c)
 		colorA = Col[3];
 		
 		ippiSet_8u_C4R(Col,Src,128,size);
-	#endif
 
 	//http://www.edepot.com/algorithm.html
 	//Algorithm E is the fastest, and JPD is the best
@@ -81,86 +78,6 @@ void TriangleMesh::Rasterize(Ipp8u *var)
 	}				
 }
 #endif
-
-/*
-public function Rasterize(dest:flash.display.BitmapData) : void
-{
-	var i:int = 0;
-	var p:Point = null;
-	for (i = minY; i < maxY ; i++)
-	{
-		p = span[i];
-		var xCount:int = p.y;
-		for (var j:int = p.x; j <= xCount; j++)
-		{
-			dest.setPixel(j, minY + i,color);
-		}
-	}				
-}
-public function RasterizeVector(dest:Vector.<uint>) : void
-{
-	var i:int = 0;
-	var p:Point = null;
-	for (i = minY; i < maxY ; i++)
-	{
-		p = span[i];
-		var xCount:int = p.y;
-		for (var j:int = p.x; j <= xCount; j++)
-		{
-			dest[i * 128 + j] = color;
-		}
-	}				
-}	
-*/
-// THE EXTREMELY FAST LINE ALGORITHM Variation B (Multiplication)
-void TriangleMesh::eflaB(int x, int y, int x2, int y2) {
-	bool yLonger=false;
-	int incrementVal;
-	int shortLen=y2-y;
-	int longLen=x2-x;
-
-	if (abs(shortLen)>abs(longLen)) {
-		int swap=shortLen;
-		shortLen=longLen;
-		longLen=swap;
-		yLonger=true;
-	}
-
-	if (longLen<0) incrementVal=-1;
-	else incrementVal=1;
-
-	double multDiff;
-	if (longLen==0.0) multDiff=(double)shortLen;
-	else multDiff=(double)shortLen/(double)longLen;
-	if (yLonger) {
-		for (int i=0;i!=longLen;i+=incrementVal) {
-			int xFinal = x+(int)((double)i*multDiff);
-			
-			if (xFinal < span[y+i].minx)
-			{
-				span[y+i].minx = xFinal;
-			}
-			else if (xFinal > span[y+i].maxx)
-			{
-				span[y+i].maxx = xFinal;
-			}
-		}
-	} else {
-		for (int i=0;i!=longLen;i+=incrementVal) {
-			int  xFinal = x + i;
-			
-			if (xFinal < span[(int)(y+i * multDiff)].minx)
-			{
-				span[(int)(y+i * multDiff)].minx = xFinal;
-			}
-			else if (xFinal > span[(int)(y+i * multDiff)].maxx)
-			{
-				span[(int)(y+i * multDiff)].maxx = xFinal;
-			}
-			//myPixel(surface,x+i,y+(int)((double)i*multDiff));
-		}
-	}
-}
 
 void TriangleMesh::eflaE(int x, int y, int x2, int y2) {
    	bool yLonger=false;
@@ -249,63 +166,3 @@ void TriangleMesh::eflaE(int x, int y, int x2, int y2) {
 
 }
 
-
-
-void TriangleMesh::efla(int x, int y , int x2 , int y2)
-{
-	int shortLen = y2-y;
-	int longLen = x2-x;
-
-	bool yLonger = false;
-
-	if ((shortLen ^ (shortLen >> 31)) - (shortLen >> 31) > (longLen ^ (longLen >> 31)) - (longLen >> 31))
-	{
-		shortLen ^= longLen;
-		longLen ^= shortLen;
-		shortLen ^= longLen;
-
-		yLonger = true;
-	}
-	else
-	{
-		yLonger = false;
-	}
-
-	int  inc = (longLen < 0) ? -1 : 1;
-
-	float multDiff = (longLen == 0) ? shortLen : (shortLen / longLen);
-	int xFinal = 0;
-
-	if (yLonger)
-	{
-		for (int i = 0; i != longLen; i += inc)
-		{
-			xFinal = x + i * multDiff;
-			
-			if (xFinal < span[y+i].minx)
-			{
-				span[y+i].minx = xFinal;
-			}
-			else if (xFinal > span[y+i].maxx)
-			{
-				span[y+i].maxx = xFinal;
-			}
-		}
-	}
-	else
-	{
-		for (int i = 0; i != longLen; i += inc)
-		{
-			xFinal = x + i;
-			
-			if (xFinal < span[(int)(y+i * multDiff)].minx)
-			{
-				span[(int)(y+i * multDiff)].minx = xFinal;
-			}
-			else if (xFinal > span[(int)(y+i * multDiff)].maxx)
-			{
-				span[(int)(y+i * multDiff)].maxx = xFinal;
-			}					
-		}
-	}
-}
