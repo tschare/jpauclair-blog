@@ -13,9 +13,12 @@ public:
 	void Init(UINT aTriangleCount, int aWidth,int aHeigth);
 	void SaveImage(char *aImageName);
 	void CompareTo( Ipp8u* aModel8u );
-	
+	void cImage::CrossOver( cImage *aImages , std::vector<cImage*> *Vec);
+
 	UINT			mScore;	
 	Ipp64f mModelDiff;
+	Ipp64f mFitnessMin;
+	Ipp64f mFitnessMax;
 
 private:
 

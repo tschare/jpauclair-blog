@@ -14,7 +14,7 @@ public:
 	void Dispose();
 
 
-	cImage **mImages;
+	std::vector<cImage*> mImages;
 private:
 
 	LPDIRECT3DTEXTURE9 ModelTexture;
