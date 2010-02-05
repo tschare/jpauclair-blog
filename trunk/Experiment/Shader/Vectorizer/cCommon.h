@@ -10,7 +10,7 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "winmm.lib") 
 
-#define USE_ITT 0
+#define USE_ITT 1
 
 #if USE_ITT
 	#pragma comment(lib, "libittnotify.lib")
@@ -84,6 +84,7 @@ struct VertexT
 		x = ax; y =ay; z= az;
 	}
 };
+
 struct MyTriangle
 {
 	VertexT v1, v2, v3;

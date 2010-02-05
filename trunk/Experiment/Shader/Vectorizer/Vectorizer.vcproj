@@ -217,6 +217,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\cImage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\cLog.cpp"
 				>
 			</File>
@@ -265,6 +269,10 @@
 		</Filter>
 		<File
 			RelativePath=".\cCommon.h"
+			>
+		</File>
+		<File
+			RelativePath=".\cImage.h"
 			>
 		</File>
 		<File
