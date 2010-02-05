@@ -13,15 +13,15 @@ void Renderer::init()
 {
 
 	//Create number of image
-	mImages = new cImage*[NB_IMAGES];
 
 	//Init and generate first set of data
 	#pragma omp parallel for //num_threads(CORE_COUNT)
 	for(int x=0;x<NB_IMAGES;x++)
 	{
-		mImages[x] = new cImage(C);
-		mImages[x]->Init(50,128,128);
-		mImages[x]->GenerateRandom();
+		cImage *Images = new cImage(C);
+		Images->Init(50,128,128);
+		Images->GenerateRandom();
+		mImages.push_back(Images);
 	}
 
 	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "Mona_Lisa.bmp", &ModelTexture )))
@@ -44,6 +44,7 @@ void Renderer::Render()
 	char msg[255];
 
 	t1 = timeGetTime();
+	Ipp64f TotalFitness=0;
 	#pragma omp parallel for //num_threads(CORE_COUNT)
 	for(int x=0;x<NB_IMAGES;x++)
 	{
@@ -51,7 +52,48 @@ void Renderer::Render()
 		//sprintf_s(msg,255,"images/%d.jpg",x);
 		//mImages[x]->SaveImage(msg);
 		mImages[x]->CompareTo(mModelData);
+		mImages[x]->mFitnessMin = TotalFitness;
+		TotalFitness += mImages[x]->mModelDiff;
+		mImages[x]->mFitnessMax = TotalFitness;
 	}
+
+	//http://www.ai-junkie.com/ga/intro/gat2.html
+
+	std::vector<cImage*> m_vec;
+	while (m_vec.size() < 50)
+	{
+
+		float WheelSel = getRandomMinMax(0,TotalFitness);
+		int sel1=0;
+
+		for(int x=0;x<NB_IMAGES;x++)
+		{
+			if((mImages[x]->mFitnessMin < WheelSel) && (mImages[x]->mFitnessMax >= WheelSel))
+			{
+				sel1=x;
+				break;
+			}
+		}
+
+		WheelSel = getRandomMinMax(0,TotalFitness);
+		int sel2=0;
+
+		for(int x=0;x<NB_IMAGES;x++)
+		{
+			if((mImages[x]->mFitnessMin < WheelSel) && (mImages[x]->mFitnessMax >= WheelSel))
+			{
+				sel2=x;
+				break;
+			}
+		}
+
+		mImages[sel1]->CrossOver(mImages[sel2],&m_vec);
+	}
+
+	mImages.clear();
+
+	//nouvelles images
+	LogError("%d\n", m_vec.size());
 
 	/*
 	Here, parse the NB_IMAGES ( mImages[x].mModelDiff ) and find any suitable, 

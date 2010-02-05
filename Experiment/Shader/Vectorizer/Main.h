@@ -11,6 +11,7 @@
 #include <d3dx9.h>
 #include <malloc.h>
 
+#include <vector>
 #include <mmsystem.h>
 #include <emmintrin.h>
 #include "resource.h"

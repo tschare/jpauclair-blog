@@ -102,92 +102,22 @@ void cImage::CompareTo( Ipp8u* aModel8u)
 	
 	__itt_event_start( mCompare );
 	ippiAbsDiff_8u_C1R(aModel8u,FullImageROI.width,mImageData,FullImageROI.width,mCompareBuffer,FullImageROI.width,FullImageROI);
-		
 	ippiSum_8u_C1R(mCompareBuffer,FullImageROI.width,FullImageROI,&mModelDiff);
-
 	__itt_event_end( mCompare );
 	
 }
 
-//UINT result = RenderCode3((Ipp8u*)pos, writeBuff);
-//UINT Renderer::RenderCode3(Ipp8u* readBuff, Ipp8u* writeBuff)
-//{
-	/*
-	#if	USE_ITT
-	__itt_event Render3;
-	Render3 = __itt_event_create("Render 3", 8 );
-	__itt_event_start( Render3 );
-	#endif
-
-#if USE_IPP
+void cImage::CrossOver( cImage *aImages , std::vector<cImage*> *Vec)
+{
+	float n = getRandomMinMax(0,1);
 	
-	t1 = timeGetTime();
-	Ipp8u *Tmp;//Var1,*Var2;
-	
-	
-	//ippSetNumThreads(2);
-	//Regions of interest
-	IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
-
-	//Ipp64f sum64;
-	
-	const int CORE_COUNT=1;
-
-	Ipp8u* Var1[CORE_COUNT];
-	Ipp8u* Var2[CORE_COUNT];
-	Ipp8u *Var3[CORE_COUNT]; 
-	Ipp64f sum64[CORE_COUNT];
-
-	UINT pos;
-
-	if(g_pTexture_0->LockRect(0,&m_lockedRect, NULL, D3DLOCK_READONLY) != D3D_OK)  { LogDebug("Failed 1"); } //D3DLOCK_DONOTWAIT
-	
-	Tmp = (Ipp8u *)m_lockedRect.pBits;
-	pos = (UINT)&*Tmp;
-	for(int i=0;i<CORE_COUNT;i++)
+	if(n < 0.7)
 	{
-		Var1[i] = (Ipp8u*)pos;
-		Var3[i] = writeBuff; //(Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
-	}
-
-	for(int x=0;x<1;x++)
+		n = getRandomMinMax(0,mTriangleCount);
+		//swap triangles
+	}else
 	{
-		//MultiThreading loop
-		//#pragma omp parallel for num_threads(CORE_COUNT)
-		for (int j=0;j<CORE_COUNT;j++)
-		{
-			//D3DXSaveTextureToFile("Triangle1.bmp",D3DXIFF_BMP,g_pTexture_1,NULL);
-			//if(g_pTexture_X[j]->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
-			Var2[j] = readBuff;//(Ipp8u*)m_lockedRect2.pBits;
-			
-			ippiAbsDiff_8u_C1R(Var1[j],FullImageROI.width,Var2[j],FullImageROI.width,Var3[j],FullImageROI.width,FullImageROI);
-			ippiSum_8u_C1R(Var3[j],FullImageROI.width,FullImageROI,&sum64[j]);
-
-			
-			g_pTexture_X[j]->UnlockRect(0);
-		}
+		Vec->push_back(this);
+		Vec->push_back(aImages);
 	}
-	g_pTexture_0->UnlockRect(0);
-
-	Ipp64f sum64Final=0.0f;
-	for(int i=0;i<CORE_COUNT;i++)
-	{
-		sum64Final += sum64[i];
-	}
-	t2 = timeGetTime();
-	//LogWarning("\nMultiThreaded ippiAbsDiff_8u_C1R Version\n");
-
-	//Log("time : %d \n", t2-t1);
-	//Log("diff : %f\n", sum64Final/CORE_COUNT);
-#else
-	LogWarning("Version Code 3 non disponible");
-#endif
-	#if	USE_ITT
-	__itt_event_end( Render3 );
-	#endif
-
-	return UINT((double)sum64Final /(double)CORE_COUNT);
-
-	*/
-	//return 0;
-//}
+}
