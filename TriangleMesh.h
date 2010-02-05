@@ -8,25 +8,28 @@ class TriangleMesh
 public:
 	TriangleMesh(void);
 	~TriangleMesh(void);
-	void Set(VertexT av1, VertexT av2, VertexT av3, unsigned int c);
-	void Rasterize(Ipp8u *var);
-	
-	
-private:
-	void efla(int x, int y , int x2, int y2);
+	void Set(VertexT v1, VertexT v2, VertexT v3, unsigned int c);
+	void efla(int x, int y , int x2 , int y2);
 	void eflaB(int x, int y, int x2, int y2);
 	void eflaE(int x, int y, int x2, int y2);
-
-	UINT color;
+	
+	unsigned int color;
 	UINT colorA;
+
+
 	TRs *span;
 	int minY ;
 	int maxY;
 	bool dirty;
+
+	#if	USE_IPP
+	void Rasterize(Ipp8u *var);
 	Ipp8u *Src ;
 	Ipp8u Col[4] ;
 	IppiSize size ;
+	#endif
 
-	VertexT mV1,mV2,mV3;
+	
+
 
 };

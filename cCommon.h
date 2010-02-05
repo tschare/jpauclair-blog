@@ -10,12 +10,13 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "winmm.lib") 
 
-#define USE_ITT 1
+#define USE_ITT 0
 
 #if USE_ITT
 	#pragma comment(lib, "libittnotify.lib")
 	#include "libittnotify.h"
 #endif
+
 
 #define USE_IPP 1
 
@@ -52,8 +53,8 @@
 #define APP_WIDTH   512
 #define APP_HEIGHT  512
 
-#define IMAGE_WIDTH 128.0f
-#define IMAGE_HEIGHT 128.0f
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 128
 
 #define SAFERELEASE(p)      if(p != NULL){ p->Release(); p = NULL; }
 #define SAFEDELETE(p)       if(p != NULL){ delete p; p = NULL; }
@@ -77,18 +78,32 @@ struct Vertex
 
 struct VertexT
 {
-	float x, y, z;
+	int x, y;
 	VertexT() {}
-	VertexT(float ax, float ay,float az)
+	VertexT(float ax, float ay)
 	{
-		x = ax; y =ay; z= az;
+		x = ax; y =ay;
 	}
+};
+
+struct SpanBorder
+{
+	int minX;
+	int maxX;
 };
 
 struct MyTriangle
 {
 	VertexT v1, v2, v3;
 	UINT color;
+	SpanBorder span[256];
+	#if	USE_IPP
+		Ipp8u Col[4] ;
+		IppiSize size ;
+	#endif
+	int minY;
+	int maxY;
+	bool dirty;
 	MyTriangle() 
 	{
 	}
@@ -98,19 +113,17 @@ struct MyTriangle
 
 struct MyImage
 {
-	MyTriangle tri[50];
+	MyTriangle tri[150];
+	int triCount;
 	UINT score;
+	
 	MyImage() {}
 };
 
 
 
 
-struct TRs
-{
-	int minx;
-	int maxx;
-};
+
 
 
 #ifndef xmax

@@ -15,9 +15,21 @@ D3DPRESENT_PARAMETERS d3dpp;
 
 
 
+
+float      g_fSpinX = 0.0f;
+float      g_fSpinY = 0.0f;
+
+
 COMMON *C;
 Renderer *mRenderer;
 
+Vertex g_quadVertices[] =
+{
+	{-1.0f, 1.0f, 0.0f, 1.0f,  0 , 0.0f,0.0f },
+	{ 1.0f, 1.0f, 0.0f, 1.0f,  0 , 1.0f,0.0f },
+	{-1.0f,-1.0f, 0.0f, 1.0f,  0 ,0.0f,1.0f },
+	{ 1.0f,-1.0f, 0.0f, 1.0f,  0 ,1.0f,1.0f }
+};
 
 //-----------------------------------------------------------------------------
 // PROTOTYPES
@@ -116,6 +128,36 @@ LRESULT CALLBACK WindowProc( HWND   hWnd,
 		}
         break;
 
+		case WM_LBUTTONDOWN:
+		{
+			ptLastMousePosit.x = ptCurrentMousePosit.x = LOWORD (lParam);
+            ptLastMousePosit.y = ptCurrentMousePosit.y = HIWORD (lParam);
+			bMousing = true;
+		}
+		break;
+
+		case WM_LBUTTONUP:
+		{
+			bMousing = false;
+		}
+		break;
+
+		case WM_MOUSEMOVE:
+		{
+			ptCurrentMousePosit.x = LOWORD (lParam);
+			ptCurrentMousePosit.y = HIWORD (lParam);
+
+			if( bMousing )
+			{
+				g_fSpinX -= (ptCurrentMousePosit.x - ptLastMousePosit.x);
+				g_fSpinY -= (ptCurrentMousePosit.y - ptLastMousePosit.y);
+			}
+			
+			ptLastMousePosit.x = ptCurrentMousePosit.x;
+            ptLastMousePosit.y = ptCurrentMousePosit.y;
+		}
+		break;
+
 		case WM_CLOSE:
 		{
 			PostQuitMessage(0);	
@@ -143,11 +185,6 @@ LRESULT CALLBACK WindowProc( HWND   hWnd,
 //-----------------------------------------------------------------------------
 void init( void )
 {	
-
-	__itt_event InitEvent;
-	InitEvent = __itt_event_create("Init Device 3d", 14 );
-	__itt_event_start( InitEvent );
-
 	Log("Init start");
 
 #if USE_IPP
@@ -177,17 +214,27 @@ void init( void )
 	}
 
 	C = new COMMON();
-
 	C->m_pD3DDevice = g_pd3dDevice;
 
-	__itt_event_end( InitEvent );
+	if(FAILED(C->m_pD3DDevice->CreateVertexBuffer( 4*sizeof(Vertex), D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &g_pVertexBuffer, NULL )))
+	{
+		LogError("Failed CreateVertexBuffer");
+		PostQuitMessage(0);
+	}
+	void *pVertices = NULL;
+
+    g_pVertexBuffer->Lock( 0, sizeof(g_quadVertices), (void**)&pVertices, 0 );
+    memcpy( pVertices, g_quadVertices, sizeof(g_quadVertices) );
+    g_pVertexBuffer->Unlock();
+	
+	C->m_pD3DDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
+
 	mRenderer = new Renderer(C);
-	
+	mRenderer->SetVertexBuffer(g_pVertexBuffer);
 	mRenderer->init();
-	
+	mRenderer->initEffect();
 	Log("Init completed");
 
-	
 }
 
 
@@ -215,6 +262,7 @@ void render( void )
 	//D3DXSaveSurfaceToFile("4.bmp",D3DXIFF_BMP,m_pTexSurface,NULL,NULL);
 	mRenderer->Render();
 	//Sleep(2000);
+	PostQuitMessage(0);
 	//kill=true;
 }
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="Vectorizer"
 	ProjectGUID="{993108E1-69D3-452C-8FD1-AE4C48C2C998}"
 	RootNamespace="Vectorizer"
@@ -80,6 +80,7 @@
 				OutputFile=".\Debug/Vectorizer.exe"
 				LinkIncremental="0"
 				SuppressStartupBanner="true"
+				IgnoreDefaultLibraryNames="vcompd.lib"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/Vectorizer.pdb"
 				SubSystem="2"
@@ -217,19 +218,15 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath=".\cImage.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\cLog.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Renderer.cpp"
+				RelativePath=".\ImageUtils.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\TriangleMesh.cpp"
+				RelativePath=".\Renderer.cpp"
 				>
 			</File>
 			<File
@@ -272,11 +269,11 @@
 			>
 		</File>
 		<File
-			RelativePath=".\cImage.h"
+			RelativePath=".\cLog.h"
 			>
 		</File>
 		<File
-			RelativePath=".\cLog.h"
+			RelativePath=".\ImageUtils.h"
 			>
 		</File>
 		<File
@@ -285,10 +282,6 @@
 		</File>
 		<File
 			RelativePath=".\Renderer.h"
-			>
-		</File>
-		<File
-			RelativePath=".\TriangleMesh.h"
 			>
 		</File>
 	</Files>
