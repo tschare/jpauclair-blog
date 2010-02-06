@@ -53,7 +53,7 @@ void Renderer::initEffect( void )
 	//
 	// Create two test textures for our effect to use...
 	//
-	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "Mona_Lisa.bmp", &g_pTexture_0 )))
+	if( FAILED(D3DXCreateTextureFromFile( C->m_pD3DDevice, "checker.bmp", &g_pTexture_0 )))
 	{
 		LogError("Failed to D3DXCreateTextureFromFile noir.bmp");
 	}
@@ -100,55 +100,6 @@ void Renderer::Render()
 
 
 
-UINT Renderer::AbsDiffImage(Ipp8u* readBuff1, Ipp8u* readBuff2, Ipp8u* writeBuff)
-{
-	#if	USE_ITT
-		__itt_event Render3;
-		Render3 = __itt_event_create("Render 3", 8 );
-		__itt_event_start( Render3 );
-	#endif
-
-	#if USE_IPP
-		/*
-		Sum : 12533760 
-		time : 17 
-		diff : 765.000000 
-		*/		
-		DWORD t1 = timeGetTime();
-
-		static IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
-
-		Ipp64f sum64;
-
-		ippiAbsDiff_8u_C1R(	readBuff1,
-							FullImageROI.width,
-							readBuff2,
-							FullImageROI.width,
-							writeBuff,
-							FullImageROI.width,
-							FullImageROI);
-		
-		ippiSum_8u_C1R(	writeBuff,
-						FullImageROI.width,
-						FullImageROI,
-						&sum64);
-		
-		DWORD t2 = timeGetTime();
-
-		//LogWarning("\nMultiThreaded ippiAbsDiff_8u_C1R Version\n");
-		//Log("time : %d \n", t2-t1);
-		//Log("diff : %f\n", sum64/CORE_COUNT);
-	#else
-		LogWarning("Version Code 3 non disponible");
-	#endif
-	#if	USE_ITT
-		__itt_event_end( Render3 );
-	#endif
-
-	return UINT(sum64);
-}
-
-
 void Renderer::EvolutionLoop()
 {
 	LPDIRECT3DTEXTURE9 g_pTexture;
@@ -161,8 +112,13 @@ void Renderer::EvolutionLoop()
 	}
 
 	//Lock Main texture
-	if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+	if(g_pTexture_0->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
 	Ipp8u* mainTexture = (Ipp8u*)m_lockedRect2.pBits;
+	g_pTexture_0->UnlockRect(0);
+
+	if(g_pTexture->LockRect(0,&m_lockedRect2, NULL, D3DLOCK_DISCARD) != D3D_OK)  { LogDebug("Failed 1"); }
+	Ipp8u* outTexture = (Ipp8u*)m_lockedRect2.pBits;
+	g_pTexture->UnlockRect(0);
 
 	#if	USE_ITT
 		__itt_event Render4;
@@ -175,58 +131,88 @@ void Renderer::EvolutionLoop()
 	static IppiSize FullImage = {int(IMAGE_WIDTH)<<2,IMAGE_HEIGHT};
 	
 	const int CORE_COUNT = 8;
-	const DWORD ITERATION_MAX = 10000;
+	const DWORD ITERATION_MAX = 10000000;
 	
-
+	DWORD bestDiff=0xFFFFFFFF;
 	MyImage* coreImage = new MyImage[CORE_COUNT];
-	MyImage bestImg;// = new MyImage;
-	ImageUtils::ResetImage(&bestImg);
+	MyImage* bestImg = new MyImage[CORE_COUNT];
 	Ipp8u* writeImageBuff[CORE_COUNT];
+	Ipp8u* writeDiffImageBuff[CORE_COUNT];
 	Ipp8u* writeLineBuff[CORE_COUNT];
 
 	for (int coreIdx=0; coreIdx<CORE_COUNT;coreIdx++)
 	{
+		ImageUtils::ResetImage(&bestImg[coreIdx]);
 		writeImageBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
+		writeDiffImageBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 		writeLineBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*4);
 	}
 
 	static IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT}; //512 = width (128 pixel X 4 bytes) - 128 = height
+	
+	char msg[255];
 
 	LogDebug("Starting Evolution Loop (%d Core * %d Iterations)\n", CORE_COUNT, ITERATION_MAX);
 	//Parallel for using all core in a good way
+	DWORD curIteration=0;
 	#pragma omp parallel for num_threads(CORE_COUNT)
 	for (int coreIdx=0;coreIdx<CORE_COUNT;coreIdx++)
 	{
 		for (DWORD j=0;j<ITERATION_MAX;j++)
 		{
+			curIteration++;
 			//CopyBest
 			//LogDebug("Core[%d] - Copy Best Image\n", coreIdx);
-			memcpy(&coreImage[coreIdx],&bestImg,sizeof(bestImg));
+			memcpy(&coreImage[coreIdx],&bestImg[coreIdx],sizeof(MyImage));
 
 			//Mutate State
 			//LogDebug("Core[%d] - Mutate State\n", coreIdx);
-			ImageUtils::MutateImage(&coreImage[coreIdx]);
+			bool dirty = ImageUtils::MutateImage(&coreImage[coreIdx]);
 
-			//Render Image
+			if (dirty)
 			{
-				//Clear background
-				//LogDebug("Core[%d] - Clear Background\n", coreIdx);
-				ippiSet_8u_C1R(0,writeImageBuff[coreIdx],512,FullImage);
+				//Render Image
+				{
+					//Clear background
+					//LogDebug("Core[%d] - Clear Background\n", coreIdx);
+					ippiSet_8u_C1R(0,writeImageBuff[coreIdx],512,FullImage);
+					
+					//Rasterize Image
+					//LogDebug("Core[%d] - Rasterize Image\n", coreIdx);
+					ImageUtils::RasterizeImage(&coreImage[coreIdx],writeImageBuff[coreIdx], writeLineBuff[coreIdx]);
+				}
 				
-				//Rasterize Image
-				//LogDebug("Core[%d] - Rasterize Image\n", coreIdx);
-				ImageUtils::RasterizeImage(&coreImage[coreIdx],mainTexture, writeLineBuff[coreIdx]);//writeImageBuff[coreIdx]);
-			}
-			
-			//Diff Images
+				//Diff Images
+				UINT diff = ImageUtils::AbsDiffImage(mainTexture, writeImageBuff[coreIdx],writeDiffImageBuff[coreIdx]);;
+				coreImage[coreIdx].score = diff;
 
-			UINT diff = 0xFFFFFFFF;
-			
-			//Evaluate
-			if (diff < coreImage[coreIdx].score)
-			{
-				LogDebug("Better solution found: Score=%d", diff);
-				memcpy(&bestImg,&coreImage[coreIdx], sizeof(bestImg));
+				//Evaluate
+				
+				for (int k=0; k < CORE_COUNT; k++)
+				{
+					
+					if (diff < bestImg[k].score)
+					{
+						#pragma omp critical
+						{
+							if (diff < bestImg[k].score)
+							{
+								LogDebug("Better solution found: Score=%d\n", diff);
+								memcpy(&bestImg[k],&coreImage[coreIdx], sizeof(MyImage));
+								
+								if (diff < bestDiff*0.9f)
+								{
+									bestDiff = diff;
+									//LogDebug("VERY Better solution\n");
+									ImageUtils::RasterizeImage(&bestImg[k],outTexture, writeLineBuff[0]);
+									sprintf_s(msg,255,"images/Iteration_%d.jpg",curIteration);
+									D3DXSaveTextureToFile(msg,D3DXIFF_BMP,g_pTexture,NULL);
+								}
+								k = CORE_COUNT;
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -236,9 +222,12 @@ void Renderer::EvolutionLoop()
 		__itt_event_end( Render4 );
 	#endif
 
+	ImageUtils::RasterizeImage(&bestImg[0],outTexture, writeLineBuff[0]);
+	
 	LogDebug("Core(x%d) -> Iteration(x%d) : TotalIteration(x%d) : time %d\n", CORE_COUNT, ITERATION_MAX, CORE_COUNT*ITERATION_MAX,t2-t1);
-	g_pTexture->UnlockRect(0);
-	D3DXSaveTextureToFile("ZZZZZZ.bmp",D3DXIFF_BMP,g_pTexture,NULL);
+	
+	D3DXSaveTextureToFile("Z_FINAL_IN.bmp",D3DXIFF_BMP,g_pTexture_0,NULL);
+	D3DXSaveTextureToFile("Z_FINAL_OUT.bmp",D3DXIFF_BMP,g_pTexture,NULL);
 
 }
 

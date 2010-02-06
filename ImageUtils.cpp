@@ -1,5 +1,40 @@
 #include "ImageUtils.h"
 
+#define RangeRand(x) (rand() % (x))
+#define IntervalRand(a,b) ((rand() % (b-a + 1)) + a)
+#define DoMutate(x) ((rand() % Settings::x) == 1)
+#define R255 (rand() % 256)
+
+namespace Settings
+{
+    int ScreenWidth;
+    int ScreenHeight;
+
+    int MaxPoints = 10;
+    int MinPoints = 3;
+    int MinPolygons = 3;
+    int MaxPolygons = 150;
+    int AlphaMin = 20;
+    int AlphaMax = 120;
+    int PointMidMovement = 20;
+    int PointSmallMovement = 3;
+
+    // mutations
+    int ComponentMutation = 1500;
+    int AddPolyMutation = 700;
+    int MovePolyMutation = 700;
+    int DelPolyMutation = 1500;
+    int AddPointMutation = 1500;
+    int DelPointMutation = 1500;
+    int AlphaMutation = 1500;
+    int PointMinMutation = 1500;
+    int PointMidMutation = 1500;
+    int PointMaxMutation = 1500;
+
+    // flags
+};
+
+
 ImageUtils::ImageUtils(void)
 {
 }
@@ -8,61 +43,148 @@ ImageUtils::~ImageUtils(void)
 {
 }
 
+void ImageUtils::ResetTriangle(MyTriangle* tri)
+{
+		tri->v1.x = rand()%126+1;	tri->v1.y = rand()%126+1;
+		tri->v2.x = rand()%126+1;	tri->v2.y = rand()%126+1;	
+		tri->v3.x = rand()%126+1;	tri->v3.y = rand()%126+1;
+		tri->Col[0] = R255;
+		tri->Col[1] = R255;
+		tri->Col[2] = R255;
+		tri->Col[3] = R255;
+
+		for(int j=0;j<IMAGE_HEIGHT;j++)
+		{
+			tri->span[j].minX = 0xFFFFFFFF;
+			tri->span[j].maxX = 0;
+		}
+
+		tri->size.height = 1;
+		tri->size.width = IMAGE_WIDTH;
+		tri->minY = 0;
+		tri->maxY = IMAGE_HEIGHT;
+}
+
 void ImageUtils::ResetImage(MyImage* img)
 {
-	img->triCount = 50;
+	img->triCount = 1;
 	img->score = 0xFFFFFFFF;
 	for(int i=0;i<150;i++)
 	{
-		img->tri[i].v1.x=0; img->tri[i].v1.y=0;
-		img->tri[i].v2.x=0;	img->tri[i].v2.y=0;
-		img->tri[i].v3.x=0;	img->tri[i].v3.y=0;
-		for(int j=0;j<256;j++)
-		{
-			img->tri[i].span[j].minX = 0xFFFFFFFF;
-			img->tri[i].span[j].maxX = 0;
-		}
-		img->tri[i].size.height = 0;
-		img->tri[i].size.width = 0;
-		img->tri[i].minY = 0;
-		img->tri[i].maxY = 256;
-		img->tri[i].dirty = true;
-		img->tri[i].color = 0xFFFFFFFF;
-		img->tri[i].Col[0] = 0xFF;
-		img->tri[i].Col[1] = 0xFF;
-		img->tri[i].Col[2] = 0xFF;
-		img->tri[i].Col[3] = 0xFF;
+		ResetTriangle(&img->tri[i]);
 	}
 }
 
-
-
-void ImageUtils::MutateImage(MyImage* img)
+bool ImageUtils::MutateVertex(VertexT* v)
 {
+	bool dirty = false;
+    if (DoMutate(PointMaxMutation)) 
+	{
+		v->x = (RangeRand(IMAGE_WIDTH));
+		v->y = (RangeRand(IMAGE_HEIGHT));
+        dirty = true;
+    }
+    if (DoMutate(PointMidMutation)) 
+	{
+		v->x += RangeRand(Settings::PointMidMovement) * 2 - Settings::PointMidMovement;
+		v->y += RangeRand(Settings::PointMidMovement) * 2 - Settings::PointMidMovement;
+        dirty = true;
+    }
+    if (DoMutate(PointMinMutation)) 
+	{
+		v->x += RangeRand(Settings::PointSmallMovement) * 2 - Settings::PointSmallMovement;
+		v->y += RangeRand(Settings::PointSmallMovement) * 2 - Settings::PointSmallMovement;
+        dirty = true;
+    }
+    if (v->x < 0) v->x = 0;
+    if (v->y < 0) v->y = 0;
+    if (v->x >= IMAGE_WIDTH) v->x = IMAGE_WIDTH-1;
+	if (v->y >= IMAGE_HEIGHT) v->y = IMAGE_HEIGHT-1;
+
+	return dirty;
+}
+
+bool ImageUtils::MutateTriangle(MyTriangle* tri)
+{
+	bool dirty = false;
+	if (DoMutate(AlphaMutation))
+	{
+		tri->Col[3] = IntervalRand(Settings::AlphaMin, Settings::AlphaMax); // A
+		dirty |= true; 
+	}
+
+	if (DoMutate(ComponentMutation)) { tri->Col[2] = R255; dirty |= true; } // R
+	if (DoMutate(ComponentMutation)) { tri->Col[1] = R255; dirty |= true; } // G
+	if (DoMutate(ComponentMutation)) { tri->Col[0] = R255; dirty |= true; } // B
+
+	
+	dirty |= MutateVertex(&tri->v1);
+	dirty |= MutateVertex(&tri->v2);
+	dirty |= MutateVertex(&tri->v3);
+
+	return dirty;
+
+
+}
+
+bool ImageUtils::MutateImage(MyImage* img)
+{
+	bool dirty = false;
+
+    if (DoMutate(AddPolyMutation))
+	{
+		if (img->triCount < 150)
+		{
+			
+			ResetTriangle(&img->tri[img->triCount]);
+			img->triCount++;
+			dirty |= true;
+			//LogDebug("AddPoly: %d\n", img->triCount);
+		}
+	}
+    if (DoMutate(DelPolyMutation))
+	{
+		if (img->triCount > 1)
+		{
+			int delPos = RangeRand(img->triCount);
+			memcpy(	&img->tri[delPos],
+					&img->tri[delPos+1],
+					sizeof(MyTriangle)*(img->triCount-delPos));
+
+			img->triCount--;
+			dirty |= true;
+			//LogDebug("DelPoly: %d\n", img->triCount);
+		}
+	}
+    if (DoMutate(MovePolyMutation))
+	{
+		int origpos = RangeRand(img->triCount);
+		int newpos  = RangeRand(img->triCount);
+		img->triCount++;
+		if (newpos != origpos)
+		{
+			MyTriangle t = img->tri[origpos];
+			img->tri[origpos] = img->tri[newpos];
+			img->tri[newpos] = t;
+			
+			dirty |= true;
+			//LogDebug("SwapPoly(%d, %d)\n", origpos, newpos);
+		}
+	}
+	
 	for(int i=0;i<img->triCount;i++)
 	{
-		//Set 3 random triangle points
-		img->tri[i].v1.x = rand()%126+1;	img->tri[i].v1.y = rand()%126+1;
-		img->tri[i].v2.x = rand()%126+1;	img->tri[i].v2.y = rand()%126+1;	
-		img->tri[i].v3.x = rand()%126+1;	img->tri[i].v3.y = rand()%126+1;
-		
-		UINT color = (rand()%256);
-		color += (rand()%256) << 8;
-		color += (rand()%256) << 16;
-		color += (rand()%256) << 24;
-		//Set random Color
-		img->tri[i].color =  color;
 
-		
-		img->tri[i].Col[3] = (color >> 24) & 0xFF;
-		img->tri[i].Col[2] = (color >> 16) & 0xFF;
-		img->tri[i].Col[1] = (color >>8) & 0xFF;
-		img->tri[i].Col[0] =  color & 0xFF;
-		
+		dirty |= MutateTriangle(&img->tri[i]);
 	}
 	
 	//Update Mesh Definition
-	ImageUtils::UpdateImage(img);
+	if (dirty)
+	{
+		ImageUtils::UpdateImage(img);
+	}
+
+	return dirty;
 }
 
 void ImageUtils::UpdateImage(MyImage* img)
@@ -70,39 +192,33 @@ void ImageUtils::UpdateImage(MyImage* img)
 	
 	for(int i=0;i<img->triCount;i++)
 	{
-
-		if (img->tri[i].dirty)
+		img->tri[i].minY = xmin(img->tri[i].v1.y, xmin(img->tri[i].v2.y, img->tri[i].v3.y));
+		img->tri[i].maxY = xmax(img->tri[i].v1.y, xmax(img->tri[i].v2.y, img->tri[i].v3.y));
+		
+		for (int j = 0; j < IMAGE_HEIGHT ; j++)
 		{
-			
-			img->tri[i].minY = xmin(img->tri[i].v1.y, xmin(img->tri[i].v2.y, img->tri[i].v3.y));
-			img->tri[i].maxY = xmax(img->tri[i].v1.y, xmax(img->tri[i].v2.y, img->tri[i].v3.y));
-			img->tri[i].dirty = false;
-			
-			for (int j = 0; j < IMAGE_HEIGHT ; j++)
-			{
-				img->tri[i].span[j].minX = IMAGE_WIDTH;
-				img->tri[i].span[j].maxX = 0;
-			}
-			
-
-			eflaE(	img->tri[i].v1.x,
-					img->tri[i].v1.y,
-					img->tri[i].v2.x,
-					img->tri[i].v2.y,
-					(SpanBorder*)img->tri[i].span);
-
-			eflaE(	img->tri[i].v2.x,
-					img->tri[i].v2.y,
-					img->tri[i].v3.x,
-					img->tri[i].v3.y,
-					(SpanBorder*)img->tri[i].span);
-
-			eflaE(	img->tri[i].v1.x,
-					img->tri[i].v1.y,
-					img->tri[i].v3.x,
-					img->tri[i].v3.y,
-					(SpanBorder*)img->tri[i].span);
+			img->tri[i].span[j].minX = IMAGE_WIDTH;
+			img->tri[i].span[j].maxX = 0;
 		}
+		
+
+		eflaE(	img->tri[i].v1.x,
+				img->tri[i].v1.y,
+				img->tri[i].v2.x,
+				img->tri[i].v2.y,
+				(SpanBorder*)img->tri[i].span);
+
+		eflaE(	img->tri[i].v2.x,
+				img->tri[i].v2.y,
+				img->tri[i].v3.x,
+				img->tri[i].v3.y,
+				(SpanBorder*)img->tri[i].span);
+
+		eflaE(	img->tri[i].v1.x,
+				img->tri[i].v1.y,
+				img->tri[i].v3.x,
+				img->tri[i].v3.y,
+				(SpanBorder*)img->tri[i].span);
 	}
 }
 
@@ -118,13 +234,22 @@ void ImageUtils::RasterizeImage(MyImage* img, Ipp8u* dest, Ipp8u* writeLineBuff)
 void ImageUtils::RasterizeTriangle(MyTriangle* tri,Ipp8u* dest, Ipp8u* writeLineBuff)
 {
 	tri->size.height = 1;
+	
+	Ipp8u Col[4];
+	Col[3]=255;
+	Col[2]=tri->Col[2];
+	Col[1]=tri->Col[1];
+	Col[0]=tri->Col[0];
+	
+		ippiSet_8u_C4R(	Col,
+						writeLineBuff,
+						128,
+						tri->size);
+
 	for (int i = tri->minY; i < tri->maxY ; i++)
 	{
-		tri->size.width = IMAGE_WIDTH;
-		tri->size.height = 1;
-
 		const int WIDTH_512 = 512;
-/**/
+/**
 		for (int j=tri->span[i].minX; j< tri->span[i].maxX; j++)
 		{
 			
@@ -145,30 +270,57 @@ void ImageUtils::RasterizeTriangle(MyTriangle* tri,Ipp8u* dest, Ipp8u* writeLine
 		/**/
 
 
-		/**
-
-		ippiSet_8u_C4R(	tri->Col,
-						writeLineBuff,
-						128,
-						tri->size);
-
+		tri->size.width = (tri->span[i].maxX - tri->span[i].minX)<<2;
+		
 		//Combines two images using constant alpha values.
 		ippiAlphaCompC_8u_C1R(	writeLineBuff,
 								WIDTH_512,
-								128,
+								tri->Col[3],
 								dest+((i * WIDTH_512) + (tri->span[i].minX<<2)),
 								WIDTH_512,
-								0xFF-128,
+								0xFF-tri->Col[3],
 								dest+((i * WIDTH_512) + (tri->span[i].minX<<2)),
 								WIDTH_512,
 								tri->size,
 								ippAlphaPlus);
-		
 		/**/
 		
 
 	}				
 }
+
+UINT ImageUtils::AbsDiffImage(Ipp8u* readBuff1, Ipp8u* readBuff2, Ipp8u* writeBuff)
+{
+	#if	USE_ITT
+		__itt_event Render3;
+		Render3 = __itt_event_create("Render 3", 8 );
+		__itt_event_start( Render3 );
+	#endif
+
+	static IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT};
+
+	Ipp64f sum64;
+
+	ippiAbsDiff_8u_C1R(	readBuff1,
+						FullImageROI.width,
+						readBuff2,
+						FullImageROI.width,
+						writeBuff,
+						FullImageROI.width,
+						FullImageROI);
+	
+	ippiSum_8u_C1R(	writeBuff,
+					FullImageROI.width,
+					FullImageROI,
+					&sum64);
+		
+	#if	USE_ITT
+		__itt_event_end( Render3 );
+	#endif
+
+	return UINT(sum64);
+}
+
 
 void ImageUtils::efla(int x, int y , int x2 , int y2, SpanBorder* span)
 {
