@@ -95,15 +95,14 @@ struct SpanBorder
 struct MyTriangle
 {
 	VertexT v1, v2, v3;
-	UINT color;
-	SpanBorder span[256];
+	//UINT color;
+	SpanBorder span[IMAGE_HEIGHT];
 	#if	USE_IPP
 		Ipp8u Col[4] ;
 		IppiSize size ;
 	#endif
 	int minY;
 	int maxY;
-	bool dirty;
 	MyTriangle() 
 	{
 	}
