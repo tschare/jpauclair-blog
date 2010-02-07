@@ -13,7 +13,7 @@ public:
 	void SetVertexBuffer(LPDIRECT3DVERTEXBUFFER9 pVertexBuffer);
 	void Dispose();
 	UINT AbsDiffImage(Ipp8u* readBuff1, Ipp8u* readBuff2, Ipp8u* writeBuff);
-
+	void LogImage(int coreIdx, MyImage* img);
 	void Renderer::RenderTriangleFast();
 
 	void EvolutionLoop();
