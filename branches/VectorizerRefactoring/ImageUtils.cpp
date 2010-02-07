@@ -67,7 +67,7 @@ void ImageUtils::ResetTriangle(MyTriangle* tri)
 
 void ImageUtils::ResetImage(MyImage* img)
 {
-	img->triCount = 1;
+	img->triCount = 10;
 	img->score = 0xFFFFFFFF;
 	for(int i=0;i<150;i++)
 	{
@@ -116,7 +116,6 @@ bool ImageUtils::MutateTriangle(MyTriangle* tri)
 	if (DoMutate(ComponentMutation)) { tri->Col[2] = R255; dirty |= true; } // R
 	if (DoMutate(ComponentMutation)) { tri->Col[1] = R255; dirty |= true; } // G
 	if (DoMutate(ComponentMutation)) { tri->Col[0] = R255; dirty |= true; } // B
-
 	
 	dirty |= MutateVertex(&tri->v1);
 	dirty |= MutateVertex(&tri->v2);
@@ -189,17 +188,29 @@ bool ImageUtils::MutateImage(MyImage* img)
 
 void ImageUtils::UpdateImage(MyImage* img)
 {
-	
+	//img->triCount=1;
 	for(int i=0;i<img->triCount;i++)
 	{
+		/**
+		img->tri[0].v1.x = 22; img->tri[0].v1.y = 10;
+		img->tri[0].v2.x =  42; img->tri[0].v2.y = 1;
+		img->tri[0].v3.x = 27; img->tri[0].v3.y = 124;
+		/*
+		img->tri[1].v1.x = 5; img->tri[1].v1.y = 5;
+		img->tri[1].v2.x =  5; img->tri[1].v2.y = 45;
+		img->tri[1].v3.x = 35; img->tri[1].v3.y = 75;
+		*/
+
 		img->tri[i].minY = xmin(img->tri[i].v1.y, xmin(img->tri[i].v2.y, img->tri[i].v3.y));
 		img->tri[i].maxY = xmax(img->tri[i].v1.y, xmax(img->tri[i].v2.y, img->tri[i].v3.y));
 		
 		for (int j = 0; j < IMAGE_HEIGHT ; j++)
 		{
-			img->tri[i].span[j].minX = IMAGE_WIDTH;
-			img->tri[i].span[j].maxX = 0;
+			img->tri[i].span[j].minX = IMAGE_WIDTH+1;
+			img->tri[i].span[j].maxX = -1;
 		}
+		
+
 		
 
 		eflaE(	img->tri[i].v1.x,
@@ -208,10 +219,10 @@ void ImageUtils::UpdateImage(MyImage* img)
 				img->tri[i].v2.y,
 				(SpanBorder*)img->tri[i].span);
 
-		eflaE(	img->tri[i].v2.x,
-				img->tri[i].v2.y,
-				img->tri[i].v3.x,
+		eflaE(	img->tri[i].v3.x,
 				img->tri[i].v3.y,
+				img->tri[i].v2.x,
+				img->tri[i].v2.y,
 				(SpanBorder*)img->tri[i].span);
 
 		eflaE(	img->tri[i].v1.x,
@@ -219,6 +230,8 @@ void ImageUtils::UpdateImage(MyImage* img)
 				img->tri[i].v3.x,
 				img->tri[i].v3.y,
 				(SpanBorder*)img->tri[i].span);
+
+
 	}
 }
 
@@ -234,22 +247,16 @@ void ImageUtils::RasterizeImage(MyImage* img, Ipp8u* dest, Ipp8u* writeLineBuff)
 void ImageUtils::RasterizeTriangle(MyTriangle* tri,Ipp8u* dest, Ipp8u* writeLineBuff)
 {
 	tri->size.height = 1;
-	
-	Ipp8u Col[4];
-	Col[3]=255;
-	Col[2]=tri->Col[2];
-	Col[1]=tri->Col[1];
-	Col[0]=tri->Col[0];
-	
-		ippiSet_8u_C4R(	Col,
-						writeLineBuff,
-						128,
-						tri->size);
-
+	/*
+	ippiSet_8u_C4R(	tri->Col,
+				writeLineBuff,
+				128,
+				tri->size);
+*/
 	for (int i = tri->minY; i < tri->maxY ; i++)
 	{
 		const int WIDTH_512 = 512;
-/**
+/**/
 		for (int j=tri->span[i].minX; j< tri->span[i].maxX; j++)
 		{
 			
@@ -260,14 +267,14 @@ void ImageUtils::RasterizeTriangle(MyTriangle* tri,Ipp8u* dest, Ipp8u* writeLine
 			double AlphaI = 1.0f - Alpha;
 
 			newColor = 0xFF << 24;
-			newColor += UINT(AlphaI*((color >> 16) & 0xFF) + Alpha*tri->Col[2]) << 16;
-			newColor += UINT(AlphaI*((color >>  8) & 0xFF) + Alpha*tri->Col[1]) <<  8;
-			newColor += UINT(AlphaI*((color      ) & 0xFF) + Alpha*tri->Col[0]);
-			
+			newColor += UINT(AlphaI*(double)((color >> 16) & 0xFF) + Alpha*(double)(tri->Col[2] << 16));
+			newColor += UINT(AlphaI*(double)((color >>  8) & 0xFF) + Alpha*(double)(tri->Col[1] <<  8));
+			newColor += UINT(AlphaI*(double)((color      ) & 0xFF) + Alpha*(double)(tri->Col[0]));
+			//newColor=0xFFFF0000;
 			*(((UINT*)dest)+((i * IMAGE_WIDTH) + (j))) = newColor;
 		}
 		
-		/**/
+		/**
 
 
 		tri->size.width = (tri->span[i].maxX - tri->span[i].minX)<<2;
@@ -297,6 +304,7 @@ UINT ImageUtils::AbsDiffImage(Ipp8u* readBuff1, Ipp8u* readBuff2, Ipp8u* writeBu
 		__itt_event_start( Render3 );
 	#endif
 
+	/**
 	static IppiSize FullImageROI = {IMAGE_WIDTH*4,IMAGE_HEIGHT};
 
 	Ipp64f sum64;
@@ -313,12 +321,25 @@ UINT ImageUtils::AbsDiffImage(Ipp8u* readBuff1, Ipp8u* readBuff2, Ipp8u* writeBu
 					FullImageROI.width,
 					FullImageROI,
 					&sum64);
-		
+	**/
+
+	DWORD diff=0;
+	Ipp8u* src = readBuff1;
+	Ipp8u* imgDest = readBuff2;
+
+	for(UINT pos=0;pos < IMAGE_WIDTH*IMAGE_HEIGHT*4; pos++)
+	{
+		diff += abs(*src - *imgDest);
+		src++;
+		imgDest++;
+	}
+	
+
 	#if	USE_ITT
 		__itt_event_end( Render3 );
 	#endif
 
-	return UINT(sum64);
+	return UINT(diff);
 }
 
 
@@ -406,7 +427,7 @@ void ImageUtils::eflaE(int x, int y, int x2, int y2, SpanBorder* span)
 				{
 					span[y].minX = xFinal;
 				}
-				else if (xFinal > span[y].maxX)
+				if (xFinal > span[y].maxX)
 				{
 					span[y].maxX = xFinal;
 				}
@@ -422,7 +443,7 @@ void ImageUtils::eflaE(int x, int y, int x2, int y2, SpanBorder* span)
 			{
 				span[y].minX = xFinal;
 			}
-			else if (xFinal > span[y].maxX)
+			if (xFinal > span[y].maxX)
 			{
 				span[y].maxX = xFinal;
 			}
@@ -440,7 +461,7 @@ void ImageUtils::eflaE(int x, int y, int x2, int y2, SpanBorder* span)
 			{
 				span[j>>16].minX = xFinal;
 			}
-			else if (xFinal > span[j>>16].maxX)
+			if (xFinal > span[j>>16].maxX)
 			{
 				span[j>>16].maxX = xFinal;
 			}
@@ -456,7 +477,7 @@ void ImageUtils::eflaE(int x, int y, int x2, int y2, SpanBorder* span)
 			{
 				span[j>>16].minX = xFinal;
 			}
-			else if (xFinal > span[j>>16].maxX)
+			if (xFinal > span[j>>16].maxX)
 			{
 				span[j>>16].maxX = xFinal;
 			}

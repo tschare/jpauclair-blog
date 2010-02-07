@@ -98,6 +98,32 @@ void Renderer::Render()
 	
 }
 
+void Renderer::LogImage(int coreIdx, MyImage* img)
+{
+	LogDebug("--- BEGIN image definition ----\n");
+	LogDebug("Image: %d - TriCount: %d - Score: %d\n", coreIdx, img->triCount, img->score);
+	for (int i=0;i<img->triCount;i++)
+	{
+		LogDebug("Tri {[%d,%d], [%d,%d], [%d,%d]} color:{%d,%d,%d,%d} MinMaxY[%d, %d]\n", img->tri[i].v1.x,
+														img->tri[i].v1.y,
+														img->tri[i].v2.x,
+														img->tri[i].v2.y,
+														img->tri[i].v3.x,
+														img->tri[i].v3.y,
+														img->tri[i].Col[3],
+														img->tri[i].Col[2],
+														img->tri[i].Col[1],
+														img->tri[i].Col[0],
+														img->tri[i].minY,
+														img->tri[i].maxY);
+		for (int j=0;j<IMAGE_HEIGHT; j++)
+		{
+			LogDebug("Span[%d]=[%d, %d]\n",j, img->tri[i].span[j].minX,img->tri[i].span[j].maxX);
+		}
+
+	}
+	LogDebug("--- END image definition ----\n");
+}
 
 
 void Renderer::EvolutionLoop()
@@ -128,10 +154,13 @@ void Renderer::EvolutionLoop()
 
 	DWORD t1 = timeGetTime();
 
+	DWORD stopTime = t1 + 60*1000;
+	bool timeUp = false;
+
 	static IppiSize FullImage = {int(IMAGE_WIDTH)<<2,IMAGE_HEIGHT};
 	
 	const int CORE_COUNT = 8;
-	const DWORD ITERATION_MAX = 10000000;
+	const DWORD ITERATION_MAX = 100000000;
 	
 	DWORD bestDiff=0xFFFFFFFF;
 	MyImage* coreImage = new MyImage[CORE_COUNT];
@@ -143,6 +172,7 @@ void Renderer::EvolutionLoop()
 	for (int coreIdx=0; coreIdx<CORE_COUNT;coreIdx++)
 	{
 		ImageUtils::ResetImage(&bestImg[coreIdx]);
+		memcpy(&coreImage[coreIdx],&bestImg[coreIdx],sizeof(MyImage));
 		writeImageBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 		writeDiffImageBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*IMAGE_HEIGHT*4);
 		writeLineBuff[coreIdx] = (Ipp8u*) ippMalloc(IMAGE_WIDTH*4);
@@ -163,7 +193,11 @@ void Renderer::EvolutionLoop()
 			curIteration++;
 			//CopyBest
 			//LogDebug("Core[%d] - Copy Best Image\n", coreIdx);
-			memcpy(&coreImage[coreIdx],&bestImg[coreIdx],sizeof(MyImage));
+			#pragma omp critical
+			if (rand()%1500==1)
+			{
+				memcpy(&coreImage[coreIdx],&bestImg[coreIdx],sizeof(MyImage));
+			}
 
 			//Mutate State
 			//LogDebug("Core[%d] - Mutate State\n", coreIdx);
@@ -175,7 +209,8 @@ void Renderer::EvolutionLoop()
 				{
 					//Clear background
 					//LogDebug("Core[%d] - Clear Background\n", coreIdx);
-					ippiSet_8u_C1R(0,writeImageBuff[coreIdx],512,FullImage);
+					//ippiSet_8u_C1R(0,writeImageBuff[coreIdx],512,FullImage);
+					memset(writeImageBuff[coreIdx],0,IMAGE_WIDTH*IMAGE_HEIGHT*4);
 					
 					//Rasterize Image
 					//LogDebug("Core[%d] - Rasterize Image\n", coreIdx);
@@ -187,32 +222,34 @@ void Renderer::EvolutionLoop()
 				coreImage[coreIdx].score = diff;
 
 				//Evaluate
-				
-				for (int k=0; k < CORE_COUNT; k++)
+		
+				if (diff < bestImg[coreIdx].score)
 				{
 					
-					if (diff < bestImg[k].score)
+					//LogDebug("Better solution found: Score=%d\n", diff);
+					memcpy(&bestImg[coreIdx],&coreImage[coreIdx], sizeof(MyImage));
+					/*
+					if (diff < bestDiff*0.9f)
 					{
-						#pragma omp critical
-						{
-							if (diff < bestImg[k].score)
-							{
-								LogDebug("Better solution found: Score=%d\n", diff);
-								memcpy(&bestImg[k],&coreImage[coreIdx], sizeof(MyImage));
-								
-								if (diff < bestDiff*0.9f)
-								{
-									bestDiff = diff;
-									//LogDebug("VERY Better solution\n");
-									ImageUtils::RasterizeImage(&bestImg[k],outTexture, writeLineBuff[0]);
-									sprintf_s(msg,255,"images/Iteration_%d.jpg",curIteration);
-									D3DXSaveTextureToFile(msg,D3DXIFF_BMP,g_pTexture,NULL);
-								}
-								k = CORE_COUNT;
-							}
-						}
+						bestDiff = diff;
+						//LogDebug("VERY Better solution: %d\n",bestDiff);
+						ImageUtils::RasterizeImage(&bestImg[k],outTexture, writeLineBuff[0]);
+						sprintf_s(msg,255,"images/Iteration_%d.jpg",curIteration);
+						D3DXSaveTextureToFile(msg,D3DXIFF_BMP,g_pTexture,NULL);
 					}
+					*/
 				}
+			}
+			if (coreIdx==0)
+			{
+				if (timeGetTime() > stopTime)
+				{
+					timeUp = true;
+				}
+			}
+			if (timeUp)
+			{
+				j = ITERATION_MAX;
 			}
 		}
 	}
@@ -227,6 +264,16 @@ void Renderer::EvolutionLoop()
 	LogDebug("Core(x%d) -> Iteration(x%d) : TotalIteration(x%d) : time %d\n", CORE_COUNT, ITERATION_MAX, CORE_COUNT*ITERATION_MAX,t2-t1);
 	
 	D3DXSaveTextureToFile("Z_FINAL_IN.bmp",D3DXIFF_BMP,g_pTexture_0,NULL);
+	for (int coreIdx=0; coreIdx<CORE_COUNT;coreIdx++)
+	{
+			//ippiSet_8u_C1R(0,outTexture,512,FullImage);
+			//LogImage(coreIdx,&bestImg[coreIdx]);
+			memset(outTexture,0,IMAGE_WIDTH*IMAGE_HEIGHT*4);
+			ImageUtils::RasterizeImage(&bestImg[coreIdx],outTexture, writeLineBuff[0]);
+			sprintf_s(msg,255,"images/Iteration_%d.jpg",coreIdx);
+			D3DXSaveTextureToFile(msg,D3DXIFF_BMP,g_pTexture,NULL);
+
+	}	
 	D3DXSaveTextureToFile("Z_FINAL_OUT.bmp",D3DXIFF_BMP,g_pTexture,NULL);
 
 }
