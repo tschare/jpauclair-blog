@@ -12,7 +12,7 @@
 	 */
 	public class Main2 extends Sprite 
 	{
-		public var image:Sprite;
+		public var image:Sprite; 
 		public function Main2():void 
 		{
 			image = new Sprite();
