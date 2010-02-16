@@ -19,8 +19,6 @@
 	import flash.utils.describeType;
 	import flash.utils.getQualifiedClassName;
 	import flash.utils.Timer;
-	import Frima.IO.InputManager;
-	import Frima.Util.Console;
 	
 	/**
 	 * ...
@@ -43,8 +41,6 @@
 			image.graphics.endFill();
 			//addChild(image);
 			
-			addChild(Console.GetInstance());
-
 			
 			if (stage) init();
 			else addEventListener(Event.ADDED_TO_STAGE, init);
@@ -110,8 +106,7 @@
 				var t:Timer = new Timer(1000);
 				t.addEventListener(TimerEvent.TIMER, OnTimer);
 				t.start();
-				InputManager.Init(l.content.root.stage);
-				
+			
 				
 				var stats:FlashStats = new FlashStats();
 				addChild(stats);
@@ -133,8 +128,7 @@
 		
 		private function OnEnterFrame(e:Event):void 
 		{
-			InputManager.Update();
-		}
+	}
 		
 		private function OnTimer(e:TimerEvent):void 
 		{
@@ -142,18 +136,6 @@
 			if (Main.TheStage != null)
 			{
 				//trace(InputManager.IsKeyDown(70), InputManager.IsKeyDown(80), InputManager.IsKeyDown(83));
-				if (InputManager.IsKeyDown(70) && InputManager.IsKeyDown(80) && InputManager.IsKeyDown(83))
-				{
-					if (Main.TheStage.frameRate == 30)
-					{
-						Main.TheStage.frameRate = 999;
-					}
-					else
-					{
-						Main.TheStage.frameRate = 30;
-					}
-					trace(Main.TheStage.frameRate);
-				}
 				Main.TheStage.addChildAt(Main.MySprite, Main.TheStage.numChildren - 1);
 				//Main.MySprite.x = Main.TheStage.stageWidth / 2;
 				//Main.MySprite.y = Main.TheStage.stageHeight / 2;
