@@ -4,7 +4,7 @@
   <output>
     <movie disabled="False" />
     <movie input="" />
-    <movie path="bin\NewProject.swf" />
+    <movie path="bin\Preloader.swf" />
     <movie fps="1" />
     <movie width="800" />
     <movie height="600" />
@@ -14,7 +14,6 @@
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
     <class path="src" />
-    <class path="..\..\..\..\CoreAS3\trunk\src" />
   </classpaths>
   <!-- Build options -->
   <build>
