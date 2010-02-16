@@ -92,7 +92,7 @@
 				if (defExist)
 				{
 					var c:Class = l.applicationDomain.getDefinition("Main2") as Class;
-					var instance:Object = new c();
+					var instance:Object = new c(); 
 					var loader:Loader = new Loader();
 					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, OnLoadComplete);
 					loader.load(new URLRequest(l.url), new LoaderContext(false,ApplicationDomain.currentDomain,SecurityDomain.currentDomain));
