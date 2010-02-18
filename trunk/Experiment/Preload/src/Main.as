@@ -1,5 +1,6 @@
 ﻿package 
 {
+	import flash.display.DisplayObject;
 	import flash.display.Loader;
 	import flash.display.LoaderInfo;
 	import flash.display.Sprite;
@@ -7,176 +8,192 @@
 	import flash.events.ContextMenuEvent;
 	import flash.events.Event;
 	import flash.events.TimerEvent;
-	import flash.net.LocalConnection;
 	import flash.net.URLRequest;
 	import flash.system.ApplicationDomain;
 	import flash.system.LoaderContext;
 	import flash.system.SecurityDomain;
-	import flash.system.System;
 	import flash.ui.ContextMenu;
 	import flash.ui.ContextMenuItem;
-	import flash.ui.Keyboard;
-	import flash.utils.describeType;
-	import flash.utils.getQualifiedClassName;
+	import flash.utils.getDefinitionByName;
 	import flash.utils.Timer;
+	import nl.demonsters.debugger.MonsterDebugger;
 	
-	/**
-	 * ...
-	 * @author jpauclair
-	 */
-	public class Main extends Sprite 
-	{
-		public static var TheStage:Stage = null;
-		public static var MySprite:Sprite = null;
-		public static var MainSprite:Sprite = null;
+    public class Main extends Sprite
+    {
+        public static var MySprite:Sprite = null;
+        public static var MainStage:Stage = null;
+        public static var MainSprite:Sprite = null;
 		
-		public var image:Sprite;
-		public function Main():void 
-		{
-			trace("Preload::Constuctor");
-			
-			image = new Sprite();
-			image.graphics.beginFill(0xFFFF0000);
-			image.graphics.drawRect(0, 0, 100, 100);
-			image.graphics.endFill();
-			//addChild(image);
-			
-			
-			if (stage) init();
-			else addEventListener(Event.ADDED_TO_STAGE, init);
-			
-		}
+		private static var needReloading:Boolean = false;	//Only for class merging
+		private static var reloaded:Boolean = false;	//Only for class merging
+		private var debugger:MonsterDebugger;
 		
-		private function init(e:Event = null):void 
-		{
-			removeEventListener(Event.ADDED_TO_STAGE, init);
+        public function Main() : void
+        {
+            trace("Preload::Constuctor");
+            
+			if (stage) this.init();
+            else {  addEventListener(Event.ADDED_TO_STAGE, this.init); }
+        }
 
-			trace("PreloadSWF::init()");
+        private function init(event:Event = null) : void
+        {
+            trace("PreloadSWF::init()");
+            removeEventListener(Event.ADDED_TO_STAGE, this.init);
+			
+            MySprite = this;
+            root.addEventListener("allComplete", this.allCompleteHandler);
 
-			// entry point
-			Main.TheStage = stage;			
-			Main.MySprite = this;	
+			//Trace Preloaded Params
+			var paramName:String = null;
+            var paramValue:String = null;
+            for (paramName in this.loaderInfo.parameters)
+            {
+                paramValue = this.loaderInfo.parameters[paramName];
+                trace("PreloadSWF Params:", paramName, " = ", paramValue);
+            }
+        }
+		
+        private function allCompleteHandler(event:Event) : void
+        {
+			if (reloaded) return;
 			
-			root.addEventListener("allComplete", allCompleteHandler);
+            var loaderInfo:LoaderInfo;
+            var theName:String;
+            var t:Timer;
+            var stats:FlashStats;
+            var theValue:String;
+			
+            try
+            {
+                loaderInfo = LoaderInfo(event.target);
+                
+				if (loaderInfo.content.root.stage == null) { return; }
+				
+                MainSprite = loaderInfo.content.root as Sprite;
+                MainStage = MainSprite.stage;
 
-			//stage.frameRate = 0;		
-			
-			for ( var theName:String in this.loaderInfo.parameters ) 
-			{
-				var theValue:String = this.loaderInfo.parameters[theName];
-				trace("PreloadSWF Params:", theName, " = ",theValue);	
-			}	
-			
-			//trace("This Loader", this.loaderInfo.loader);
-		}
-		
-		private function allCompleteHandler(e:Event):void 
-		{
-			try
-			{
-				var l:LoaderInfo = LoaderInfo(e.target);
-				
-				if (l.content.root.stage == null) return;
-				//trace("allCompleteHandler", l.url, l.loaderURL, e.currentTarget);
-				Main.MainSprite = l.content.root as Sprite;
-				Main.TheStage = l.content.root.stage;
-				l.content.root.stage.addChild(this);
-				//l.content.root.stage.frameRate = 999;
-				for (var i:int = 0; i < l.content.root.stage.numChildren;i++)
+                
+				//Remove all previous sprite
+				if (needReloading)
 				{
-					l.content.root.stage.removeChildAt(i);
-				}
-				
-				var defExist:Boolean = l.applicationDomain.hasDefinition("Main2");
-				trace("hasDefinition Main SWF ( class Main2 )", defExist);
-				if (defExist)
-				{
-					var c:Class = l.applicationDomain.getDefinition("Main2") as Class;
-					var instance:Object = new c(); 
-					var loader:Loader = new Loader();
-					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, OnLoadComplete);
-					loader.load(new URLRequest(l.url), new LoaderContext(false,ApplicationDomain.currentDomain,SecurityDomain.currentDomain));
-				}
-				//Console.Trace(""+l.actionScriptVersion);
-				for ( var theName:String in l.parameters ) 
-				{
-					var theValue:String = l.parameters[theName];
-					trace("MainParams:", theName, " = ",theValue);	
-				}			
-				var t:Timer = new Timer(1000);
-				t.addEventListener(TimerEvent.TIMER, OnTimer);
-				t.start();
-			
-				
-				var stats:FlashStats = new FlashStats();
-				addChild(stats);
-				stats.x = 10
-				stats.x = 10	
-				l.content.root.stage.addEventListener(Event.ENTER_FRAME, OnEnterFrame);
-			}
-			catch (e:Error)
-			{
-				
-			}
-		}
-		
-		private function OnLoadComplete(e:Event):void 
-		{
-			trace("OnLoadComplete");
-			
-		}
-		
-		private function OnEnterFrame(e:Event):void 
-		{
-	}
-		
-		private function OnTimer(e:TimerEvent):void 
-		{
-			
-			if (Main.TheStage != null)
-			{
-				//trace(InputManager.IsKeyDown(70), InputManager.IsKeyDown(80), InputManager.IsKeyDown(83));
-				Main.TheStage.addChildAt(Main.MySprite, Main.TheStage.numChildren - 1);
-				//Main.MySprite.x = Main.TheStage.stageWidth / 2;
-				//Main.MySprite.y = Main.TheStage.stageHeight / 2;
-				//Main.TheStage.frameRate = 999;
-				//trace("timer");
-				var context:ContextMenu = Main.MainSprite.contextMenu;
-				
-					if (context == null)
+					while (MainStage.numChildren > 0)
 					{
-						context = new ContextMenu();
-						Main.MainSprite.contextMenu = context;
-					}				
-				var finded:Boolean = false;
-				if (context.customItems != null)
-				{
-					for (var i:int = 0; i < context.customItems.length; i++)
-					{
-						if ((context.customItems[i] as ContextMenuItem).caption == "Show Profiler")
-						{
-							finded	= true;
-							break;
-						}
-						
+						var obj:Sprite = MainStage.removeChildAt(0) as Sprite;
+						obj.mouseChildren = false;
+						obj.mouseEnabled = false;
+						obj.visible = false;
 					}
 				}
-				if (!finded)
-				{
+				
+				//Add our Sprite
+                MainStage.addChild(this);				
+				
 
-					var c:ContextMenuItem = new ContextMenuItem("Show Profiler");
-					c.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, ShowBar);
-					context.customItems.push(c);
+				
+				
+				if (needReloading) //Only for class merging
+				{
+					//Re-instanciate it in our domain
+					var loader:Loader = new Loader();
+					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, OnReLoadCompleted);
+					loader.loadBytes(MainStage.loaderInfo.bytes, new LoaderContext(false, ApplicationDomain.currentDomain));// . SecurityDomain.currentDomain));
 				}
-			}
-		}
+                
+				//Trace all paramaters loaded in Main application
+				var paramName:String;
+                var paramValue:String;
+                while (paramName in loaderInfo.parameters)
+                {
+                    paramValue = loaderInfo.parameters[paramName];
+                    trace("Main Params:", paramName, " = ", theValue);
+                }
+
+				
+				//Show some stats
+                stats = new FlashStats(MainStage);
+                addChild(stats);
+                
+				//Attach an external debugger
+				debugger = new MonsterDebugger(MainStage);
+				
+				//EnterFrame Event
+				MainStage.addEventListener(Event.ENTER_FRAME, this.OnEnterFrame);
+				MainStage.frameRate = 30;
+				
+				//Timer Event (Keep this on top and add ShowProfiler option)
+                t = new Timer(500,1);
+                t.addEventListener(TimerEvent.TIMER, this.OnTimer);
+                t.start();	
+				reloaded = true;
+				
+            }
+            catch (e:Error)
+            {
+				trace(e);
+            }
+        }
 		
 		
-		private function ShowBar(e:ContextMenuEvent):void 
+		private function OnReLoadCompleted(e:Event):void 
 		{
-			
-			this.visible = !this.visible;
-			trace(this.visible);
+			var exist:Boolean = ApplicationDomain.currentDomain.hasDefinition("AnyClass");
+			trace("Reloaded, class exist?", exist);
+			MainStage.addChild(e.target.content)
+			//If you have redefined a class that is in the Main app domain, yours should take over.
+			reloaded = true;
 		}
-	}
+		
+		private function OnEnterFrame(e:Event):void
+		{
+			// Anything you want
+		}
+
+        private function ShowBar(event:ContextMenuEvent) : void
+        {
+            this.visible = !this.visible;
+            trace(this.visible);
+        }
+		
+        private function OnTimer(event:TimerEvent) : void
+        {
+            var menu:ContextMenu = null;
+            var alreadyInMenu:Boolean = false;
+            var i:int = 0;
+            var menuItem:ContextMenuItem = null;
+            if (MainStage != null)
+            {
+				
+                MainStage.addChildAt(MySprite, (MainStage.numChildren - 1));
+                menu = MainSprite.contextMenu;
+                if (menu == null)
+                {
+                    menu = new ContextMenu();
+                    MainSprite.contextMenu = menu;
+                }
+                alreadyInMenu = false;
+                if (menu.customItems != null)
+                {
+                    i = 0;
+                    while (i < menu.customItems.length)
+                    {
+                        
+                        if ((menu.customItems[i] as ContextMenuItem).caption == "Show Profiler")
+                        {
+                            alreadyInMenu = true;
+                            break;
+                        }
+                        i = i + 1;
+                    }
+                }
+                if (!alreadyInMenu)
+                {
+                    menuItem = new ContextMenuItem("Show Profiler");
+                    menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, this.ShowBar);
+                    menu.customItems.push(menuItem);
+                }
+            }
+        }
+
+    }
 }
