@@ -1,22 +1,31 @@
 ﻿package 
 {
+	import flash.display.Bitmap;
+	import flash.display.BitmapData;
 	import flash.display.DisplayObject;
+	import flash.display.DisplayObjectContainer;
 	import flash.display.Loader;
 	import flash.display.LoaderInfo;
 	import flash.display.Sprite;
 	import flash.display.Stage;
+	import flash.display.StageScaleMode;
 	import flash.events.ContextMenuEvent;
 	import flash.events.Event;
 	import flash.events.TimerEvent;
+	import flash.geom.ColorTransform;
+	import flash.geom.Matrix;
+	import flash.geom.Rectangle;
 	import flash.net.URLRequest;
 	import flash.system.ApplicationDomain;
 	import flash.system.LoaderContext;
 	import flash.system.SecurityDomain;
 	import flash.ui.ContextMenu;
 	import flash.ui.ContextMenuItem;
+	import flash.utils.Dictionary;
 	import flash.utils.getDefinitionByName;
 	import flash.utils.Timer;
 	import nl.demonsters.debugger.MonsterDebugger;
+	import flash.sampler.*;
 	
     public class Main extends Sprite
     {
@@ -27,6 +36,7 @@
 		private static var needReloading:Boolean = false;	//Only for class merging
 		private static var reloaded:Boolean = false;	//Only for class merging
 		private var debugger:MonsterDebugger;
+		private var mOverlay:UsageOverlay = null;
 		
         public function Main() : void
         {
@@ -127,13 +137,15 @@
                 t.start();	
 				reloaded = true;
 				
+				//mOverlay = new UsageOverlay(MainSprite);
+				//MainStage.addChild(mOverlay);
+				//startSampling();
             }
             catch (e:Error)
             {
 				trace(e);
             }
         }
-		
 		
 		private function OnReLoadCompleted(e:Event):void 
 		{
@@ -147,8 +159,12 @@
 		private function OnEnterFrame(e:Event):void
 		{
 			// Anything you want
+			if (mOverlay != null)
+			{
+				mOverlay.parent.addChildAt(mOverlay, mOverlay.parent.numChildren - 1);
+			}
 		}
-
+		
         private function ShowBar(event:ContextMenuEvent) : void
         {
             this.visible = !this.visible;
