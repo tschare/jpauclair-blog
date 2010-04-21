@@ -137,8 +137,8 @@
                 t.start();	
 				reloaded = true;
 				
-				//mOverlay = new UsageOverlay(MainSprite);
-				//MainStage.addChild(mOverlay);
+				mOverlay = new UsageOverlay(MainSprite);
+				MainStage.addChild(mOverlay);
 				//startSampling();
             }
             catch (e:Error)
