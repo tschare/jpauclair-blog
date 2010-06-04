@@ -44,12 +44,20 @@
 		private static var needReloading:Boolean = false;	//Only for class merging
 		private static var reloaded:Boolean = false;	//Only for class merging
 		private var mSocket:Socket;
+		private var mBitmapData:BitmapData = null;
+		private var mBitmap:Bitmap = null;
+		
         public function Main() : void
-        {
-			
+        {	
             trace("Preload::Constuctor");
+			
 			if (stage) this.init();
             else {  addEventListener(Event.ADDED_TO_STAGE, this.init); }
+			
+			mBitmapData = new BitmapData(300, 300, true, 0xcccccccc);
+			mBitmap = new Bitmap(mBitmapData);
+			addChild(mBitmap);
+			
 			var t:Timer = new Timer(1000);
 			t.addEventListener(TimerEvent.TIMER, OnTimer2);
 			t.start();
@@ -74,15 +82,22 @@
 			timerCallBack = getTimer() - timerCallBack;
 			trace("Crash! resume", timerCallBack);
 			timerCallBack = getTimer();
+			
 			System.resume();
+			
 			mSocket = new Socket();
 			mSocket.addEventListener(IOErrorEvent.IO_ERROR, OnError);
 			mSocket.addEventListener(ProgressEvent.SOCKET_DATA, OnError);
 			mSocket.addEventListener(SecurityErrorEvent.SECURITY_ERROR, OnError);
-			
 			mSocket.connect("127.0.0.1", 0);			
+			
+			mBitmapData.lock();
+			mBitmapData.floodFill(100, 100, 0xFFFF00FF);
+			mBitmapData.unlock();
+			trace(mouseX);
+			trace(mouseY);
+			
 			System.pause();
-			//System.resume();
 		}
 
 		public function EventMe(e:Event) : void
