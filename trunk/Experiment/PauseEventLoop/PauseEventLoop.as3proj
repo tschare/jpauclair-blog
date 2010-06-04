@@ -5,7 +5,7 @@
     <movie disabled="False" />
     <movie input="" />
     <movie path="bin\PauseEventLoop.swf" />
-    <movie fps="2" />
+    <movie fps="999" />
     <movie width="800" />
     <movie height="600" />
     <movie version="10" />
