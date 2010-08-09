@@ -3,9 +3,11 @@ package
 	import com.adobe.serialization.json.JSON;
 	import com.adobe.serialization.json.SimpleClass;
 	import flash.display.Sprite;
+	import flash.events.TimerEvent;
 	import flash.text.TextField;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
+	import flash.utils.Timer;
 	/**
 	 * ...
 	 * @author 
@@ -15,71 +17,79 @@ package
 		
 		public function Main() 
 		{
-			var tx:TextField = new TextField();
+			
+			var tim:Timer = new Timer(5000, 1);
+			tim.addEventListener(TimerEvent.TIMER, OnTimer);
+			tim.start();
+		}
+		
+		private function OnTimer(e:TimerEvent):void 
+		{
+var tx:TextField = new TextField();
 			addChild(tx);
 			tx.width = 800;
 
 			var result:String = null;
 			var myAmf:Amf3Input = null;
 			
-			var isTrue:Boolean = true;
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(isTrue);
-			tx.appendText("Boolean true result: " + result + "\n");
-			
-			var isFalse:Boolean = false;
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(isFalse);
-			tx.appendText("Boolean false result: " + result + "\n");			
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(1);
-			tx.appendText("int 1 result: " + result + "\n");			
-
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(-1);
-			tx.appendText("int -1 result: " + result + "\n");						
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(int.MIN_VALUE);
-			tx.appendText("int int.MIN_VALUE result: " + result + "\n");						
-
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(int.MAX_VALUE);
-			tx.appendText("int int.MAX_VALUE result: " + result + "\n");									
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(uint.MIN_VALUE);
-			tx.appendText("int uint.MIN_VALUE result: " + result + "\n");						
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(uint.MAX_VALUE);
-			tx.appendText("int uint.MAX_VALUE result: " + result + "\n");						
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(1.0343749837);
-			tx.appendText("float 1.0343749837 result: " + result + "\n");						
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(-38471.0343749837);
-			tx.appendText("float -38471.0343749837 result: " + result + "\n");						
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject("foobar");
-			tx.appendText("String foobar result: " + result + "\n");									
-			
-			var assoArrayTest:Array = new Array();
-			assoArrayTest.push(22);
-			assoArrayTest["foo"] = "bar";
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(["foobar",-1,1,32.34,["test"],assoArrayTest]);
-			tx.appendText("Array [\"foobar\"] result: " + result + "\n");												
-			
-			myAmf = new Amf3Input();
-			result = myAmf.readObject(new SimpleClass2());
-			tx.appendText("SimpleClass result: \n" + result + "\n");			
-			
-			tx.appendText(JSON.encode(new SimpleClass2()));
+			//var isTrue:Boolean = true;
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(isTrue);
+			//tx.appendText("Boolean true result: " + result + "\n");
+			//
+			//var isFalse:Boolean = false;
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(isFalse);
+			//tx.appendText("Boolean false result: " + result + "\n");			
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(1);
+			//tx.appendText("int 1 result: " + result + "\n");			
+//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(-1);
+			//tx.appendText("int -1 result: " + result + "\n");						
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(int.MIN_VALUE);
+			//tx.appendText("int int.MIN_VALUE result: " + result + "\n");						
+//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(int.MAX_VALUE);
+			//tx.appendText("int int.MAX_VALUE result: " + result + "\n");									
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(uint.MIN_VALUE);
+			//tx.appendText("int uint.MIN_VALUE result: " + result + "\n");						
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(uint.MAX_VALUE);
+			//tx.appendText("int uint.MAX_VALUE result: " + result + "\n");						
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(1.0343749837);
+			//tx.appendText("float 1.0343749837 result: " + result + "\n");						
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(-38471.0343749837);
+			//tx.appendText("float -38471.0343749837 result: " + result + "\n");						
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject("foobar");
+			//tx.appendText("String foobar result: " + result + "\n");									
+			//
+			//var assoArrayTest:Array = new Array();
+			//assoArrayTest.push(22);
+			//assoArrayTest["foo"] = "bar";
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(["foobar",-1,1,32.34,["test"],assoArrayTest]);
+			//tx.appendText("Array [\"foobar\"] result: " + result + "\n");												
+			//
+			//myAmf = new Amf3Input();
+			//result = myAmf.readObject(new SimpleClass2());
+			//tx.appendText("SimpleClass result: \n" + result + "\n");			
+			//
+			//tx.appendText(JSON.encode(new SimpleClass2()));
 			
 			//var foo:String = "foobar";
 			//myAmf = new Amf3Input();
@@ -182,13 +192,13 @@ package
 			var i:int = 0;
 			var t:int = getTimer();
 			var s:String = null;
-			for (i = 0; i < 4000; i++)
-			{
-			
-				s = JSON.encode(new SimpleClass2());
-			}
-			t = getTimer() - t;
-			tx.text = t.toString() + ", " + s;
+			//for (i = 0; i < 4000; i++)
+			//{
+			//
+				//s = JSON.encode(new SimpleClass2());
+			//}
+			//t = getTimer() - t;
+			//tx.text = t.toString() + ", " + s;
 
 			t = getTimer();
 			var amf:Amf3Input = new Amf3Input();
@@ -199,32 +209,7 @@ package
 			}
 			t = getTimer() - t;
 			
-			tx.appendText("\n" +   t.toString() + ", " + s);
-			
-			
-			return;
-			t = getTimer();
-			for (i = 0; i < 4000; i++)
-			{
-			
-				s = JSON.encode(new SimpleClass());
-			}
-			t = getTimer() - t;
-			
-			tx.appendText("\n" +   t.toString() + ", " + s);
-
-			var ba:ByteArray = new ByteArray();
-			Amf3Input;
-			t = getTimer();
-			for (i = 0; i < 4000; i++)
-			{
-				ba.position = 0;
-				ba.writeObject(new SimpleClass());
-			}
-			t = getTimer() - t;
-			
 			tx.appendText("\n" +   t.toString() + ", " + s);			
-			//trace("s", t);
 		}
 		
 	}

@@ -87,9 +87,9 @@ package
 		public function reset():void
 		{
 			super.reset();
-			this.stringTable.clear();
-			this.objectTable.clear();
-			this.traitsTable.clear();
+			this.stringTable.splice(stringTable.length);
+			this.objectTable.splice(objectTable.length);
+			this.traitsTable.splice(traitsTable.length);
 		}
 
 		public function  saveObjectTable():Object
@@ -158,9 +158,9 @@ package
 			{
 				case 6: // String
 					outJSON.writeByte(QUOTATION_MARK);
-					var ba:ByteArray = readString();
-					ba.position = 0;
-					outJSON.writeBytes(ba, 0, ba.length);
+					var ba:String = readString();
+					
+					outJSON.writeUTFBytes(ba);
 					outJSON.writeByte(QUOTATION_MARK);
 					break;
 				case 10: // Object
@@ -232,7 +232,7 @@ package
 			return inAMF.readObject();
 		}
 		
-		protected function readString():ByteArray
+		protected function readString():String
 		{
 			// Always start string with quotation mark (")
 			var ref:int = readUInt29();
@@ -250,6 +250,7 @@ package
 			}
 
 			var baStr:ByteArray = new ByteArray();
+			var baHead:int = 0;
 			while (--len >= 0)
 			{
 				var charCode:uint = inAMF.readUnsignedByte();
@@ -258,8 +259,8 @@ package
 				{
 				
 					case QUOTATION_MARK:	// quotation mark
-						baStr.writeByte(QUOTATION_MARK_CONVERTED1);
-						baStr.writeByte(QUOTATION_MARK_CONVERTED2);
+						baStr[baHead++] = (QUOTATION_MARK_CONVERTED1);
+						baStr[baHead++] = (QUOTATION_MARK_CONVERTED2);
 						break;
 						
 					//case '/':	// solidus
@@ -267,33 +268,33 @@ package
 					//	break;
 						
 					case REVERSE_SOLIDUS:	// reverse solidus
-						baStr.writeByte(REVERSE_SOLIDUS_CONVERTED1);
-						baStr.writeByte(REVERSE_SOLIDUS_CONVERTED2);
+						baStr[baHead++] = (REVERSE_SOLIDUS_CONVERTED1);
+						baStr[baHead++] = (REVERSE_SOLIDUS_CONVERTED2);
 						break;
 						
 					case BELL:	// bell
-						baStr.writeByte(BELL_CONVERTED1);
-						baStr.writeByte(BELL_CONVERTED2);
+						baStr[baHead++] = (BELL_CONVERTED1);
+						baStr[baHead++] = (BELL_CONVERTED2);
 						break;
 						
 					case FORM_FEED:	// form feed
-						baStr.writeByte(FORM_FEED_CONVERTED1);
-						baStr.writeByte(FORM_FEED_CONVERTED2);
+						baStr[baHead++] = (FORM_FEED_CONVERTED1);
+						baStr[baHead++] = (FORM_FEED_CONVERTED2);
 						break;
 						
 					case NEW_LINE:	// newline
-						baStr.writeByte(NEW_LINE_CONVERTED1);
-						baStr.writeByte(NEW_LINE_CONVERTED2);
+						baStr[baHead++] = (NEW_LINE_CONVERTED1);
+						baStr[baHead++] = (NEW_LINE_CONVERTED2);
 						break;
 						
 					case CARRIAGE_RETURN:	// carriage return
-						baStr.writeByte(CARRIAGE_RETURN_CONVERTED1);
-						baStr.writeByte(CARRIAGE_RETURN_CONVERTED2);
+						baStr[baHead++] = (CARRIAGE_RETURN_CONVERTED1);
+						baStr[baHead++] = (CARRIAGE_RETURN_CONVERTED2);
 						break;
 						
 					case HORIZONTAL_TAB:	// horizontal tab
-						baStr.writeByte(HORIZONTAL_TAB_CONVERTED1);
-						baStr.writeByte(HORIZONTAL_TAB_CONVERTED2);
+						baStr[baHead++] = (HORIZONTAL_TAB_CONVERTED1);
+						baStr[baHead++] = (HORIZONTAL_TAB_CONVERTED2);
 						break;
 						
 					default:	// everything else
@@ -311,7 +312,7 @@ package
 							//s += "\\u" + zeroPad + hexCode;
 						//} else {
 						//
-							baStr.writeByte(charCode);
+							baStr[baHead++] = (charCode);
 							// no need to do any special encoding, just pass-through
 							//s += ch;
 							//
@@ -322,9 +323,11 @@ package
 				
 			}
 			
-			this.stringTable.push(baStr);
+			baStr.position = 0
+			var s:String = baStr.readUTFBytes(baStr.length);
+			this.stringTable.push(s);
 
-			return baStr;
+			return s;
 		}
 
 		//protected function  readDate():Date
@@ -361,7 +364,7 @@ package
 			var map:Object = null;
 			while (true)
 			{
-				var name:ByteArray = readString();
+				var name:String = readString();
 				if (name == null) break; 
 				if (name.length == 0) break;
 				DefaultAMFReadObject(false);
@@ -394,10 +397,10 @@ package
 			var len:int = ti.properties.length;
 			for (var i:int = 0; i < len; ++i)
 			{
-				var prop:ByteArray = ti.properties[i];
+				var prop:String = ti.properties[i];
 
 				outJSON.writeByte(QUOTATION_MARK);
-				outJSON.writeBytes(prop, 0, prop.length);
+				outJSON.writeUTFBytes(prop);
 				outJSON.writeByte(QUOTATION_MARK);
 				outJSON.writeByte(COLON);
 				InternalReadObject();
@@ -411,7 +414,7 @@ package
 				var firstPass:Boolean = true;
 				while (true)
 				{
-					var name:ByteArray = readString();
+					var name:String = readString();
 					if (name == null) break; 
 					if (name.length == 0) break;
 					if (firstPass)
@@ -423,7 +426,7 @@ package
 						outJSON.writeByte(COMMA);
 					}
 					outJSON.writeByte(QUOTATION_MARK);
-						outJSON.writeBytes(name, 0, name.length);
+						outJSON.writeUTFBytes(name);
 					outJSON.writeByte(QUOTATION_MARK);					
 					outJSON.writeByte(COLON);
 					InternalReadObject();
@@ -644,7 +647,7 @@ package
 			return this.objectTable[ref];
 		}
 
-		protected function  getStringReference(ref:int):ByteArray
+		protected function  getStringReference(ref:int):String
 		{
 			return this.stringTable[ref];
 		}
@@ -659,7 +662,7 @@ import flash.utils.ByteArray;
 
 internal class TraitsInfo
 {
-	public var className:ByteArray;
+	public var className:String;
 	public var isDynamic:Boolean;
 	public var externalizable:Boolean;
 	public var properties:Array;
