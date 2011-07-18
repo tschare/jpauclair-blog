@@ -1,4 +1,4 @@
-package 
+﻿package 
 {
 	// Flash Molehill : Massive amounts of  3d particles with GPU 
 	// Jean-Philippe Auclair (jpauclair)
@@ -117,7 +117,7 @@ package
 			_Infos.defaultTextFormat = myformat;
 			_Infos.selectable = false;
 			_Infos.filters = [ myglow ];
-			_Infos.appendText("Press 1, 2, 3, 4 to change the number of processed Attractors\n");
+			_Infos.appendText("Press 1, 2, 3, 4 to change the number of processed Attractors, 5 to change size\n");
 			_Infos.appendText("Each attractor have 16K particles\n");
 			_Infos.appendText("Each particle is a SpriteSheet animation of 71 frames using transparency mask");
 			_Infos.x = 10;
@@ -192,6 +192,39 @@ package
 			if (e.charCode == Keyboard.NUMBER_2) mNumberToShow = 2;
 			if (e.charCode == Keyboard.NUMBER_3) mNumberToShow = 3;
 			if (e.charCode == Keyboard.NUMBER_4) mNumberToShow = 4;
+			
+			if (e.charCode == Keyboard.NUMBER_5)
+			{
+				var quadSize:Number = 0.075;
+				var vertexOffset:Vector.<Number> = null;
+				
+				
+				
+				_sizeToUse = _sizeToUse % 5
+				switch (_sizeToUse)
+				{
+					case 0: quadSize = 0.075; break;
+					case 1: quadSize = 0.05; break;
+					case 2: quadSize = 0.025; break;
+					case 3: quadSize = 0.0125; break;
+					case 4: quadSize = 0.1; break;
+					
+				}
+				_sizeToUse++;
+				vertexOffset = Vector.<Number>([-quadSize, -quadSize, 0, 1]);
+				_context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 12,vertexOffset, 1);	
+				
+				vertexOffset = Vector.<Number>([quadSize, -quadSize, 0, 1]);
+				_context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 13,vertexOffset, 1);	
+				
+				vertexOffset = Vector.<Number>([ -quadSize, quadSize, 0, 1]);
+				_context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 14,vertexOffset, 1);	
+				
+				vertexOffset = Vector.<Number>([quadSize, quadSize, 0, 1]);
+				_context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 15,vertexOffset, 1);					
+				
+				
+			}
 			stage.focus = focusManager
 		}
 		
@@ -272,8 +305,8 @@ package
 		
 		public function InitProgramConstants() : void
 		{
-			var quadSizeX:Number = 0.1;
-			var quadSizeY:Number = 0.1;
+			var quadSizeX:Number = 0.075;
+			var quadSizeY:Number = 0.075;
 			
 			_context.setProgramConstantsFromVector( Context3DProgramType.FRAGMENT, 0,_fragmentConsts, 1 );
 			
@@ -384,6 +417,7 @@ package
 		private var viewCurrentRotation4:Number = 40.1;
 		
 		private var mNumberToShow:int = 1;
+		private var _sizeToUse:int = 1;
 		private function OnEnterFrame(e:Event):void 
 		{
 			_context.clear(0, 0, 0, 0);
@@ -554,8 +588,8 @@ package
 			vertexASM.assemble( Context3DProgramType.VERTEX, 
 					"mov vt1, va0 \n" + 
 					"mov vt2, vc[va0.w] \n" +  			// new vector (DeltaX,DeltaY,DeltaZ,1)
-					"m44 vt3, vt2, vc8     \n" +  		// transform InvertView
-					
+					"m33 vt3.xyz, vt2.xyz, vc8     \n" +  		// transform InvertView (m33 because it's only a rotation/scale)
+					"mov vt3.w, vt2.w \n" + 
 					"add vt3.xyz, vt3.xyz, vt1.xyz \n" +// Add the original vertex position
 					
 					"m44 op, vt3, vc0     \n" +  		// transform ViewProjection matrix
